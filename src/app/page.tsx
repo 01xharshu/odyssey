@@ -21,6 +21,9 @@ const CustomCursor = dynamic(() => import('@/components/CustomCursor'), {
 const AudioManager = dynamic(() => import('@/components/AudioManager'), {
   ssr: false,
 });
+const DetectiveMesh = dynamic(() => import('@/components/DetectiveMesh'), {
+  ssr: false,
+});
 const Epilogue = dynamic(() => import('@/components/Epilogue'), {
   ssr: false,
 });
@@ -30,24 +33,15 @@ const GreekCity = dynamic(() => import('@/components/GreekCity/GreekCity'), {
 
 export default function Home() {
   return (
-    <main className="text-white min-h-screen overflow-x-hidden">
+    <main className="text-white min-h-screen overflow-x-hidden bg-[#1c1c1e]">
       <CinematicIntro />
       <CustomCursor />
       <AudioManager />
-      
-      {/* 1. The Fall of Troy (Before the Odyssey) */}
       <TrojanWar />
-      
-      {/* 2. The 10-year Journey */}
+      <DetectiveMesh />
       <OdysseyCarousel />
-      
-      {/* 3. The Dangers of the Sea (Odyssey Lore) */}
       <OceanLore />
-      
-      {/* 4. Reaching Ithaca */}
       <Epilogue />
-      
-      {/* 5. The Ruins Today */}
       <GreekCity />
     </main>
   );

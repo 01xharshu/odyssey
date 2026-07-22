@@ -18,6 +18,14 @@
     color: #f3f4f6;
     font-family: var(--font-fauna);
     overflow-x: hidden;
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   ::selection {
@@ -106,24 +114,17 @@
   animation: breathe 4s infinite ease-in-out;
 }
 
-/* ===== Custom scrollbar ===== */
+/* ===== Hide ALL scrollbars globally ===== */
 
-::-webkit-scrollbar {
-  width: 6px;
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-::-webkit-scrollbar-track {
-  background: #030303;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1a1a1e;
-  border-radius: 3px;
-  border: 1px solid rgba(245, 158, 11, 0.15);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #d97706;
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* ===== Glass morphism utility ===== */

@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import WarningSuppressor from "@/components/WarningSuppressor";
 
 export const metadata: Metadata = {
   title: "The Odyssey | An Interactive Cinematic Experience",
@@ -19,8 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="snap-y snap-mandatory scroll-smooth">
-      <body className="antialiased bg-[#1c1c1e]">{children}</body>
+    <html lang="en">
+      <body className="antialiased bg-[#1c1c1e]">
+        <WarningSuppressor />
+        {children}
+      </body>
     </html>
   );
 }

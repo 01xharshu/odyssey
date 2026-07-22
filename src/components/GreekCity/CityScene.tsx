@@ -3,7 +3,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sky, SpotLight, useDepthBuffer, Clouds, Cloud, Stars, OrbitControls } from '@react-three/drei';
-import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { cityLoreData } from '@/data/cityLore';
 import Temple from './buildings/Temple';
@@ -275,11 +274,6 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
 
   return (
     <>
-      <EffectComposer>
-        <Noise opacity={0.05} />
-        <Vignette eskil={false} offset={0.1} darkness={1.1} />
-      </EffectComposer>
-
       <fog attach="fog" args={['#1c1c1e', 10, 100]} />
 
       <OrbitControls 
@@ -434,7 +428,6 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
         const isHovered = hoveredId === building.id;
         
         const props = {
-          key: building.id,
           position: building.position,
           rotation: building.rotation,
           scale: building.scale,
@@ -447,9 +440,9 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
         };
 
         switch (building.type) {
-          case 'temple': return <Temple {...props} />;
-          case 'fort': return <Fort {...props} />;
-          case 'house': return <House {...props} />;
+          case 'temple': return <Temple key={building.id} {...props} />;
+          case 'fort': return <Fort key={building.id} {...props} />;
+          case 'house': return <House key={building.id} {...props} />;
           default: return null;
         }
       })}

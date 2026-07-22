@@ -112,7 +112,7 @@ export default function OdysseyCarousel() {
   return (
     <div
       ref={containerRef}
-      className="snap-start shrink-0 relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
+      className="relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
       style={{ fontFamily: "'Cinzel', serif" }}
     >
       {/* Sticky viewport */}
@@ -212,40 +212,8 @@ export default function OdysseyCarousel() {
           />
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-[6vh] left-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none">
-          <span
-            className="text-[9px] tracking-[0.3em] uppercase text-amber-500/30 font-sans mb-2 transition-opacity duration-500"
-            style={{ opacity: scrollProgress < 0.1 ? 0.6 : 0 }}
-          >
-            Scroll to explore
-          </span>
-          <div
-            className="w-[1px] h-6 bg-gradient-to-b from-amber-500/40 to-transparent transition-opacity duration-500"
-            style={{ opacity: scrollProgress < 0.1 ? 1 : 0 }}
-          />
-        </div>
-
-        {/* Progress indicator on the right edge */}
-        <div className="absolute right-4 top-[10%] bottom-[10%] w-[2px] z-20 pointer-events-none">
-          <div className="absolute inset-0 bg-white/5 rounded-full" />
-          <div
-            className="absolute top-0 left-0 w-full rounded-full transition-all duration-150"
-            style={{
-              height: `${scrollProgress * 100}%`,
-              background: `linear-gradient(to bottom, ${activeCharacter.accentHex}, transparent)`,
-            }}
-          />
-          <div
-            className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full transition-all duration-150"
-            style={{
-              top: `${scrollProgress * 100}%`,
-              background: activeCharacter.accentHex,
-              boxShadow: `0 0 10px ${activeCharacter.accentHex}60`,
-            }}
-          />
-        </div>
       </div>
     </div>
   );
 }
+

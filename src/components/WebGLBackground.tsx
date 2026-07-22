@@ -1,6 +1,8 @@
 'use client';
 
+import React, { useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { useInView } from 'framer-motion';
 import ParticleField from './ParticleField';
 import GodRays from './GodRays';
 
@@ -19,9 +21,13 @@ export default function WebGLBackground({
   activeIndex,
   accentColor,
 }: WebGLBackgroundProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { margin: "0px 0px 0px 0px" });
+
   return (
-    <div className="absolute inset-0 z-[1] pointer-events-none">
+    <div ref={containerRef} className="absolute inset-0 z-[1] pointer-events-none">
       <Canvas
+        frameloop={isInView ? 'always' : 'demand'}
         camera={{ position: [0, 0, 8], fov: 60 }}
         dpr={[1, 1.5]}
         gl={{

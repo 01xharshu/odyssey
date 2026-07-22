@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useMousePosition } from '@/hooks/useMousePosition';
 import { Howl } from 'howler';
+import { useScroll, useTransform, motion } from 'framer-motion';
 
 export default function CinematicIntro() {
   const [phase, setPhase] = useState<'scratching' | 'revealed'>('scratching');
@@ -11,6 +12,14 @@ export default function CinematicIntro() {
   const scratchCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const mousePos = useMousePosition();
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
+
+  const fadeOutOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const scaleOut = useTransform(scrollYProgress, [0, 0.5], [1, 1.1]);
 
   const parallaxX = mousePos.x * 20;
   const parallaxY = mousePos.y * 20;
@@ -54,38 +63,68 @@ export default function CinematicIntro() {
     canvas.width = width;
     canvas.height = height;
 
-    // Fill with dark brownish sand
-    ctx.fillStyle = '#2b1b12'; 
-    ctx.fillRect(0, 0, width, height);
+    // Create a hyper-realistic sand pattern off-screen
+    const patCanvas = document.createElement('canvas');
+    patCanvas.width = 256;
+    patCanvas.height = 256;
+    const patCtx = patCanvas.getContext('2d')!;
     
-    // Add heavy noise/texture to make it look like grainy sand
-    for (let i = 0; i < 40000; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(139,69,19,0.3)';
-      ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
+    // Base sand color
+    patCtx.fillStyle = '#c39c63';
+    patCtx.fillRect(0, 0, 256, 256);
+    
+    // Generate fine noise for grains
+    const imgData = patCtx.createImageData(256, 256);
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 40;
+      imgData.data[i] = 195 + noise;     // R
+      imgData.data[i+1] = 156 + noise;   // G
+      imgData.data[i+2] = 99 + noise;    // B
+      imgData.data[i+3] = 255;           // A
     }
-    
-    ctx.font = '24px "Cinzel", serif';
-    ctx.fillStyle = 'rgba(245,158,11,0.6)';
-    ctx.textAlign = 'center';
-    ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', width / 2, height / 2);
+    patCtx.putImageData(imgData, 0, 0);
+
+    // Add some larger pebbles/grains
+    for(let i=0; i<1000; i++) {
+      patCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+      patCtx.beginPath();
+      patCtx.arc(Math.random() * 256, Math.random() * 256, Math.random() * 1.5, 0, Math.PI * 2);
+      patCtx.fill();
+    }
+
+    const sandPattern = ctx.createPattern(patCanvas, 'repeat')!;
+
+    const drawSand = (w: number, h: number) => {
+      // Add lighting gradient over the pattern
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, '#e6c896');
+      grad.addColorStop(1, '#a67b45');
+      
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = sandPattern;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.font = '24px "Cinzel", serif';
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; // Shadow for text
+      ctx.textAlign = 'center';
+      ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', w / 2 + 2, h / 2 + 2);
+      ctx.fillStyle = 'rgba(255, 230, 180, 0.8)';
+      ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', w / 2, h / 2);
+    };
+
+    drawSand(width, height);
 
     const handleResize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
       canvas.width = width;
       canvas.height = height;
-      ctx.fillStyle = '#2b1b12';
-      ctx.fillRect(0, 0, width, height);
-      
-      for (let i = 0; i < 40000; i++) {
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(139,69,19,0.3)';
-        ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
-      }
-      
-      ctx.font = '24px "Cinzel", serif';
-      ctx.fillStyle = 'rgba(245,158,11,0.6)';
-      ctx.textAlign = 'center';
-      ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', width / 2, height / 2);
+      drawSand(width, height);
     };
     window.addEventListener('resize', handleResize);
 
@@ -123,14 +162,31 @@ export default function CinematicIntro() {
     const clientY = y - rect.top;
 
     ctx.globalCompositeOperation = 'destination-out';
+    
+    // Soft radial brush for realistic sand displacement
+    const brushRadius = 100;
+    const radGrad = ctx.createRadialGradient(clientX, clientY, 0, clientX, clientY, brushRadius);
+    radGrad.addColorStop(0, 'rgba(0,0,0,1)');
+    radGrad.addColorStop(0.5, 'rgba(0,0,0,0.8)');
+    radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    
+    ctx.fillStyle = radGrad;
     ctx.beginPath();
-    ctx.arc(clientX, clientY, 80, 0, Math.PI * 2); // 80px brush size
+    ctx.arc(clientX, clientY, brushRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // Add some random scatter to the brush for a realistic wipe feel
-    for (let i = 0; i < 5; i++) {
+    // Add organic scatter grains falling off the brush
+    for (let i = 0; i < 8; i++) {
+      const offsetX = (Math.random() - 0.5) * 80;
+      const offsetY = (Math.random() - 0.5) * 80;
+      const size = Math.random() * 20 + 10;
+      const scatterGrad = ctx.createRadialGradient(clientX + offsetX, clientY + offsetY, 0, clientX + offsetX, clientY + offsetY, size);
+      scatterGrad.addColorStop(0, 'rgba(0,0,0,0.9)');
+      scatterGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.fillStyle = scatterGrad;
       ctx.beginPath();
-      ctx.arc(clientX + (Math.random() - 0.5) * 40, clientY + (Math.random() - 0.5) * 40, Math.random() * 40 + 20, 0, Math.PI * 2);
+      ctx.arc(clientX + offsetX, clientY + offsetY, size, 0, Math.PI * 2);
       ctx.fill();
     }
   };
@@ -163,10 +219,9 @@ export default function CinematicIntro() {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="snap-start shrink-0 relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#1c1c1e] overflow-hidden"
-    >
+    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-50">
+      <div className="sticky top-0 w-full h-screen flex flex-col items-center justify-center overflow-hidden">
+
       {/* Film Grain Overlay */}
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-2000 z-40"
@@ -202,11 +257,12 @@ export default function CinematicIntro() {
       </div>
 
       {/* Title with Parallax and Hover Glow */}
-      <div 
+      <motion.div 
         className="relative z-10 text-center group transition-all duration-[2000ms]"
         style={{
           transform: `translate(${parallaxX}px, ${parallaxY}px)`,
-          opacity: phase === 'revealed' ? 1 : 0, // Hidden until scratched
+          opacity: phase === 'revealed' ? fadeOutOpacity : 0, // Hidden until scratched, then fades on scroll
+          scale: scaleOut,
           filter: phase === 'scratching' ? 'blur(20px)' : 'blur(0px)',
         }}
       >
@@ -237,7 +293,7 @@ export default function CinematicIntro() {
              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </div>
-      </div>
+      </motion.div>
 
       {/* Scratch Canvas Overlay */}
       <canvas
@@ -248,6 +304,7 @@ export default function CinematicIntro() {
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
       />
-    </div>
+      </div>
+    </section>
   );
 }

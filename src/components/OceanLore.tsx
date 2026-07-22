@@ -1,8 +1,9 @@
 'use client';
 
-import React, { Suspense, useRef, useState, useMemo } from 'react';
+import React, { Suspense, useRef, useState, useMemo, useEffect } from 'react';
+import { useInView, useScroll, MotionValue } from 'framer-motion';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ScrollControls, useScroll, Html, Stars, PresentationControls } from '@react-three/drei';
+import { Html, Stars, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Low-poly Trireme Ship
@@ -189,10 +190,9 @@ function StormLightning() {
   return <pointLight ref={lightRef} position={[0, 20, -10]} color="#aaccff" distance={100} />;
 }
 
-function OceanCamera() {
-  const scroll = useScroll();
+function OceanCamera({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) {
   useFrame((state, delta) => {
-    const t = scroll.offset;
+    const t = scrollYProgress.get();
     // Move the camera past the ship as the journey progresses
     const targetX = Math.sin(t * Math.PI) * 10;
     const targetZ = 15 - t * 30; // Move forward
@@ -206,13 +206,12 @@ function OceanCamera() {
   return null;
 }
 
-function HtmlOverlays() {
-  const scroll = useScroll();
+function HtmlOverlays({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) {
   const [opacity, setOpacity] = useState(1);
   const [stage, setStage] = useState(0);
 
   useFrame(() => {
-    const t = scroll.offset;
+    const t = scrollYProgress.get();
     if (t < 0.3) {
       setStage(0);
       setOpacity(1 - (t / 0.3));
@@ -244,13 +243,20 @@ function HtmlOverlays() {
 }
 
 export default function OceanLore() {
+  const containerRef = useRef<HTMLElement>(null);
+  const isInView = useInView(containerRef, { margin: "0px 0px 0px 0px" });
+  const { scrollYProgress } = useScroll({ 
+    target: containerRef, 
+    offset: ["start start", "end end"] 
+  });
+
   return (
-    <section className="snap-start shrink-0 relative w-full h-screen bg-[#000510] overflow-hidden">
-      <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 50 }}>
-        <Suspense fallback={null}>
-          <ScrollControls pages={3} damping={0.1}>
-            <OceanCamera />
-            <HtmlOverlays />
+    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-10">
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+        <Canvas frameloop={isInView ? 'always' : 'demand'} shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 50 }}>
+          <Suspense fallback={null}>
+            <OceanCamera scrollYProgress={scrollYProgress} />
+            <HtmlOverlays scrollYProgress={scrollYProgress} />
             
             {/* The Environment */}
             <fog attach="fog" args={['#051525', 10, 60]} />
@@ -264,7 +270,7 @@ export default function OceanLore() {
             
             <StormyOcean />
             <PresentationControls
-              global
+              global={false}
 
               snap={true}
               rotation={[0, 0, 0]}
@@ -274,9 +280,9 @@ export default function OceanLore() {
               <Trireme />
             </PresentationControls>
             
-          </ScrollControls>
-        </Suspense>
-      </Canvas>
+          </Suspense>
+        </Canvas>
+      </div>
     </section>
   );
 }
