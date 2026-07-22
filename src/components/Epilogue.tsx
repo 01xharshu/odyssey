@@ -26,10 +26,10 @@ export default function Epilogue() {
   return (
     <section
       ref={observerRef}
-      className="relative min-h-screen bg-[#030303] flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen bg-[#1c1c1e] flex items-center justify-center overflow-hidden"
     >
       {/* Ambient gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] via-transparent to-[#1c1c1e] pointer-events-none" />
 
       <div
         className="relative z-10 text-center max-w-2xl px-8 transition-all duration-[2000ms]"

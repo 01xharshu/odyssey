@@ -7,6 +7,8 @@ export default function AudioManager() {
   const [isLoaded, setIsLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const [isCityLocked, setIsCityLocked] = useState(false);
+
   useEffect(() => {
     // Use a free ambient epic sound
     const audio = new Audio();
@@ -22,12 +24,19 @@ export default function AudioManager() {
       audio.play().catch(() => {});
       setIsMuted(false);
     };
+    
+    const handleCityLocked = () => {
+      setIsCityLocked(true);
+    };
+
     window.addEventListener('introComplete', handleIntroComplete);
+    window.addEventListener('cityLocked', handleCityLocked);
 
     return () => {
       audio.pause();
       audio.src = '';
       window.removeEventListener('introComplete', handleIntroComplete);
+      window.removeEventListener('cityLocked', handleCityLocked);
     };
   }, []);
 
@@ -48,7 +57,7 @@ export default function AudioManager() {
   return (
     <button
       onClick={toggleMute}
-      className="fixed bottom-6 right-6 z-[100] w-12 h-12 rounded-full border border-amber-500/30 bg-black/50 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-300 hover:border-amber-500/60 hover:bg-black/70 group"
+      className={`fixed bottom-6 right-6 z-[100] w-12 h-12 rounded-full border border-amber-500/30 bg-[#1c1c1e]/50 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-1000 hover:border-amber-500/60 hover:bg-[#1c1c1e]/70 group ${isCityLocked ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
     >
       {isMuted ? (

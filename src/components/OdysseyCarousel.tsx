@@ -112,7 +112,7 @@ export default function OdysseyCarousel() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[400vh] bg-[#030303] text-white selection:bg-amber-500 selection:text-black"
+      className="relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
       style={{ fontFamily: "'Cinzel', serif" }}
     >
       {/* Sticky viewport */}
@@ -144,8 +144,8 @@ export default function OdysseyCarousel() {
         ))}
 
         {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/95 via-[#030303]/60 to-[#030303]/40 z-[1] pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/50 z-[1] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1c1c1e]/95 via-[#1c1c1e]/60 to-[#1c1c1e]/40 z-[1] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] via-transparent to-[#1c1c1e]/50 z-[1] pointer-events-none" />
 
         {/* Subtle grid pattern overlay */}
         <div
@@ -211,10 +211,6 @@ export default function OdysseyCarousel() {
             }}
           />
         </div>
-
-        {/* Cinematic letterbox bars */}
-        <div className="absolute top-0 left-0 right-0 h-[4vh] bg-black z-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 h-[4vh] bg-black z-20 pointer-events-none" />
 
         {/* Scroll indicator */}
         <div className="absolute bottom-[6vh] left-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none">

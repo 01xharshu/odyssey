@@ -165,7 +165,7 @@ export default function CinematicIntro() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden"
+      className="relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#1c1c1e] overflow-hidden"
     >
       {/* Film Grain Overlay */}
       <div 
@@ -200,20 +200,6 @@ export default function CinematicIntro() {
           />
         ))}
       </div>
-
-      {/* Cinematic letterbox bars */}
-      <div
-        className="absolute top-0 left-0 right-0 bg-black z-20 transition-all duration-1000"
-        style={{
-          height: phase === 'revealed' ? '8%' : '0%',
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-0 right-0 bg-black z-20 transition-all duration-1000"
-        style={{
-          height: phase === 'revealed' ? '8%' : '0%',
-        }}
-      />
 
       {/* Title with Parallax and Hover Glow */}
       <div 

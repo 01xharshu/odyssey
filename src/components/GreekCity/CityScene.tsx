@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sky, SpotLight, useDepthBuffer, Clouds, Cloud, Stars } from '@react-three/drei';
+import { Sky, SpotLight, useDepthBuffer, Clouds, Cloud, Stars, OrbitControls } from '@react-three/drei';
 import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { cityLoreData } from '@/data/cityLore';
@@ -54,71 +54,135 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
     return texture;
   }, []);
 
-  const trees = useMemo(() => {
-    return Array.from({ length: 100 }).map((_, i) => {
-      let x = (Math.random() - 0.5) * 150;
-      let z = (Math.random() - 0.5) * 150;
-      if (Math.abs(x) < 25 && Math.abs(z) < 25) {
-        x += 30 * Math.sign(x);
-        z += 30 * Math.sign(z);
+  const roadTexture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.fillStyle = '#2d2d2d';
+      context.fillRect(0, 0, 512, 512);
+      // Generate cobblestone pattern
+      for (let y = 0; y < 512; y += 32) {
+        for (let x = 0; x < 512; x += 32) {
+          context.fillStyle = Math.random() > 0.5 ? '#1a1a1a' : '#3a3a3a';
+          context.fillRect(x + 2, y + 2, 28, 28);
+        }
       }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(15, 2); // Stretch along roads
+    return texture;
+  }, []);
+
+  const clearanceZones = useMemo(() => [
+    [0, 0], // Center hub
+    ...cityLoreData.map(b => [b.position[0], b.position[2]])
+  ], []);
+
+  const isClear = (x: number, z: number, radius: number) => {
+    for (const [cx, cz] of clearanceZones) {
+      if (Math.hypot(x - cx, z - cz) < radius) return false;
+    }
+    // Avoid river
+    if (x < -20 && x > -60 && z > -150 && z < 100) return false;
+    return true;
+  };
+
+  const trees = useMemo(() => {
+    const arr = [];
+    let attempts = 0;
+    while (arr.length < 50 && attempts < 1000) { // Reduced count, tighter bounds
+      attempts++;
+      // Keep strictly within visible camera FOV [z: -5 to -40, x: -35 to 35]
+      const x = (Math.random() - 0.5) * 70;
+      const z = -5 - (Math.random() * 35);
+      if (!isClear(x, z, 12)) continue;
+      
       const scale = Math.random() * 0.4 + 0.4;
-      return (
-        <group key={`tree-${i}`} position={[x, 0, z]} scale={scale}>
-          <mesh position={[0, 1, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[0.2, 0.4, 2, 5]} />
-            <meshStandardMaterial color="#3e2723" roughness={1} />
+      arr.push(
+        <group key={`tree-${arr.length}`} position={[x, 0, z]} scale={scale}>
+          {/* Tapered Trunk */}
+          <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.1, 0.4, 3, 7]} />
+            <meshPhysicalMaterial color="#3e2723" roughness={1} clearcoat={0.1} />
           </mesh>
-          <mesh position={[0, 3, 0]} castShadow receiveShadow>
-            <coneGeometry args={[1.5, 3, 7]} />
-            <meshStandardMaterial color="#1b5e20" roughness={1} />
+          {/* Organic Canopy using overlapping spheres */}
+          <mesh position={[0, 3.5, 0]} castShadow receiveShadow>
+            <sphereGeometry args={[1.5, 12, 12]} />
+            <meshPhysicalMaterial color="#1b5e20" roughness={1} clearcoat={0.1} />
+          </mesh>
+          <mesh position={[-1, 3, 0.5]} castShadow receiveShadow>
+            <sphereGeometry args={[1.2, 12, 12]} />
+            <meshPhysicalMaterial color="#228b22" roughness={1} clearcoat={0.1} />
+          </mesh>
+          <mesh position={[1, 3, -0.5]} castShadow receiveShadow>
+            <sphereGeometry args={[1.2, 12, 12]} />
+            <meshPhysicalMaterial color="#145a14" roughness={1} clearcoat={0.1} />
           </mesh>
         </group>
       );
-    });
-  }, []);
+    }
+    return arr;
+  }, [clearanceZones]);
   
   // Simple scattered huts
   const shelters = useMemo(() => {
-    return Array.from({ length: 20 }).map((_, i) => {
-      let x = (Math.random() - 0.5) * 180;
-      let z = (Math.random() - 0.5) * 180;
-      if (Math.abs(x) < 30 && Math.abs(z) < 30) {
-        x += 40 * Math.sign(x);
-        z += 40 * Math.sign(z);
-      }
-      return (
-        <group key={`hut-${i}`} position={[x, 0, z]} rotation={[0, Math.random() * Math.PI, 0]}>
+    const arr = [];
+    let attempts = 0;
+    while (arr.length < 10 && attempts < 1000) {
+      attempts++;
+      // Keep strictly within visible camera FOV
+      const x = (Math.random() - 0.5) * 80;
+      const z = -5 - (Math.random() * 40);
+      if (!isClear(x, z, 15)) continue;
+
+      arr.push(
+        <group key={`hut-${arr.length}`} position={[x, 0, z]} rotation={[0, Math.random() * Math.PI, 0]}>
           <mesh position={[0, 0.8, 0]} castShadow receiveShadow>
             <boxGeometry args={[2, 1.6, 2.5]} />
-            <meshStandardMaterial color="#5c4033" roughness={1} />
+            <meshPhysicalMaterial color="#5c4033" roughness={1} clearcoat={0.1} map={terrainTexture || undefined} />
           </mesh>
           <mesh position={[0, 1.9, 0]} rotation={[0, Math.PI / 4, 0]} castShadow receiveShadow>
             <coneGeometry args={[2, 1, 4]} />
-            <meshStandardMaterial color="#3e2723" roughness={1} />
+            <meshPhysicalMaterial color="#3e2723" roughness={1} clearcoat={0.1} map={terrainTexture || undefined} />
           </mesh>
         </group>
       );
-    });
-  }, []);
+    }
+    return arr;
+  }, [terrainTexture, clearanceZones]);
 
   const hills = useMemo(() => {
-    return Array.from({ length: 15 }).map((_, i) => {
-      const x = (Math.random() - 0.5) * 200;
-      const z = (Math.random() - 0.5) * 200;
+    const arr = [];
+    let attempts = 0;
+    while (arr.length < 8 && attempts < 1000) {
+      attempts++;
+      // Background hills only
+      const x = (Math.random() - 0.5) * 150;
+      const z = -40 - (Math.random() * 60);
+      if (!isClear(x, z, 25)) continue;
+
       const scaleX = Math.random() * 20 + 10;
       const scaleY = Math.random() * 5 + 2;
       const scaleZ = Math.random() * 20 + 10;
-      return (
-        <mesh key={`hill-${i}`} position={[x, -2, z]} scale={[scaleX, scaleY, scaleZ]} receiveShadow>
+      arr.push(
+        <mesh key={`hill-${arr.length}`} position={[x, -2, z]} scale={[scaleX, scaleY, scaleZ]} receiveShadow>
           <sphereGeometry args={[1, 16, 16]} />
-          <meshStandardMaterial color="#1a202c" roughness={1} metalness={0.1} map={terrainTexture || undefined} />
+          <meshPhysicalMaterial color="#1c1c1e" roughness={1} clearcoat={0.1} metalness={0.1} map={terrainTexture || undefined} />
         </mesh>
       );
-    });
-  }, [terrainTexture]);
+    }
+    return arr;
+  }, [terrainTexture, clearanceZones]);
   
   const lastTimeRef = useRef(-1);
+  const sunRef = useRef<THREE.Mesh>(null!);
+  const sunGlowRef = useRef<THREE.Mesh>(null!);
+  const moonGlowRef = useRef<THREE.Mesh>(null!);
 
   useFrame((state, delta) => {
     const time = state.clock.elapsedTime;
@@ -139,24 +203,26 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
 
     const sunElevation = Math.sin(time * cycleSpeed);
     
-    const isSelectedNight = selectedId !== null;
+    const isBuildingSelected = selectedId !== null;
     
-    const targetSunY = isSelectedNight ? -50 : sunElevation * 100;
+    // Sun position continues normally
+    const targetSunY = sunElevation * 100;
     sunPosition.current.y += (targetSunY - sunPosition.current.y) * delta * 2;
     sunPosition.current.x = Math.cos(time * cycleSpeed) * 100;
     
     // Moon orbits opposite
     moonPosition.current.set(-sunPosition.current.x, -sunPosition.current.y, -sunPosition.current.z);
 
+    // Dim the environment lighting if a building is selected, creating a stark contrast
     if (ambientLightRef.current) {
       const naturalIntensity = Math.max(0.05, sunElevation * 0.6);
-      const targetIntensity = isSelectedNight ? 0.1 : naturalIntensity;
+      const targetIntensity = isBuildingSelected ? 0.05 : naturalIntensity;
       ambientLightRef.current.intensity += (targetIntensity - ambientLightRef.current.intensity) * delta * 2;
     }
     
     if (directionalLightRef.current) {
       const naturalIntensity = Math.max(0.0, sunElevation * 1.5);
-      const targetIntensity = isSelectedNight ? 0.05 : naturalIntensity;
+      const targetIntensity = isBuildingSelected ? 0.0 : naturalIntensity;
       directionalLightRef.current.intensity += (targetIntensity - directionalLightRef.current.intensity) * delta * 2;
       
       directionalLightRef.current.position.copy(sunPosition.current);
@@ -167,19 +233,43 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
       spotLightTargetRef.current.updateMatrixWorld();
     }
 
+    // Stars and Moon opacity are now purely based on the natural day/night cycle
     if (starsRef.current) {
-      const isNightTime = sunPosition.current.y < 5 || isSelectedNight;
+      const isNightTime = sunPosition.current.y < 5;
       const targetOpacity = isNightTime ? 1 : 0;
       const mat = starsRef.current.material as THREE.PointsMaterial;
       mat.opacity += (targetOpacity - mat.opacity) * delta * 1.5;
     }
     
-    if (moonRef.current) {
+    if (moonRef.current && moonGlowRef.current) {
       moonRef.current.position.copy(moonPosition.current);
-      const isNightTime = sunPosition.current.y < 5 || isSelectedNight;
-      const mat = moonRef.current.material as THREE.MeshStandardMaterial;
+      moonGlowRef.current.position.copy(moonPosition.current);
+      const isNightTime = sunPosition.current.y < 5;
+      const mat = moonRef.current.material as THREE.MeshBasicMaterial;
+      const glowMat = moonGlowRef.current.material as THREE.MeshBasicMaterial;
       const targetOpacity = isNightTime ? 1 : 0;
       mat.opacity += (targetOpacity - mat.opacity) * delta * 2;
+      glowMat.opacity += ((isNightTime ? 0.3 : 0) - glowMat.opacity) * delta * 2;
+    }
+
+    if (sunRef.current && sunGlowRef.current) {
+      sunRef.current.position.copy(sunPosition.current);
+      sunGlowRef.current.position.copy(sunPosition.current);
+      const isDayTime = sunPosition.current.y > 0;
+      const mat = sunRef.current.material as THREE.MeshBasicMaterial;
+      const glowMat = sunGlowRef.current.material as THREE.MeshBasicMaterial;
+      const targetOpacity = isDayTime ? 1 : 0;
+      mat.opacity += (targetOpacity - mat.opacity) * delta * 2;
+      glowMat.opacity += ((isDayTime ? 0.4 : 0) - glowMat.opacity) * delta * 2;
+    }
+
+    // Fog also follows natural day/night cycle
+    if (state.scene.fog) {
+      const lerpFactor = (sunElevation + 1) / 2; // 0 to 1
+      const dayFog = new THREE.Color('#adc7e6');
+      const nightFog = new THREE.Color('#1c1c1e');
+      const targetFogColor = nightFog.clone().lerp(dayFog, lerpFactor);
+      (state.scene.fog as THREE.Fog).color.lerp(targetFogColor, delta * 2);
     }
   });
 
@@ -190,7 +280,18 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
         <Vignette eskil={false} offset={0.1} darkness={1.1} />
       </EffectComposer>
 
-      <fog attach="fog" args={['#030303', 20, 150]} />
+      <fog attach="fog" args={['#1c1c1e', 10, 100]} />
+
+      <OrbitControls 
+        target={[0, 2, -10]} 
+        maxPolarAngle={Math.PI / 2 - 0.05} // Don't let them look under the ground
+        minPolarAngle={Math.PI / 3} // Don't let them look straight down from top
+        minAzimuthAngle={-Math.PI / 4} // Restrict looking too far left
+        maxAzimuthAngle={Math.PI / 4} // Restrict looking too far right
+        enableZoom={false}
+        enablePan={false}
+        dampingFactor={0.05}
+      />
 
       <Sky 
         distance={450000} 
@@ -201,11 +302,26 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
         rayleigh={sunPosition.current.y < 20 ? 0.5 : 1}
       />
 
+      {/* Sun */}
+      <mesh ref={sunRef} castShadow={false} receiveShadow={false}>
+        <sphereGeometry args={[30, 32, 32]} />
+        <meshBasicMaterial color="#ffeedd" transparent opacity={0} />
+      </mesh>
+      <mesh ref={sunGlowRef} castShadow={false} receiveShadow={false}>
+        <sphereGeometry args={[45, 32, 32]} />
+        <meshBasicMaterial color="#ffaa55" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+
       {/* Moon */}
       <mesh ref={moonRef} castShadow={false} receiveShadow={false}>
-        <sphereGeometry args={[8, 32, 32]} />
-        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} transparent opacity={0} />
+        <sphereGeometry args={[25, 32, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} />
       </mesh>
+      <mesh ref={moonGlowRef} castShadow={false} receiveShadow={false}>
+        <sphereGeometry args={[35, 32, 32]} />
+        <meshBasicMaterial color="#adc7e6" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+
       {/* Weak directional light from the moon */}
       {moonRef.current && moonRef.current.position.y > 0 && (
         <directionalLight position={moonPosition.current} intensity={0.1} color="#adc7e6" />
@@ -213,10 +329,10 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
 
       <Stars 
         ref={starsRef}
-        radius={100} 
+        radius={150} 
         depth={50} 
-        count={5000} 
-        factor={4} 
+        count={8000} 
+        factor={7} 
         saturation={0} 
         fade 
         speed={1} 
@@ -232,33 +348,52 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
       <directionalLight 
         ref={directionalLightRef} 
         position={[50, 50, 20]} 
-        intensity={1.0} 
+        intensity={1.5} 
         castShadow 
-        shadow-mapSize={[2048, 2048]} 
+        shadow-mapSize={[4096, 4096]}
+        shadow-bias={-0.0005}
+        shadow-camera-left={-60}
+        shadow-camera-right={60}
+        shadow-camera-top={60}
+        shadow-camera-bottom={-60}
       />
 
       {selectedBuilding && (
-        <>
+        <group position={[selectedBuilding.position[0], 0, selectedBuilding.position[2]]}>
+          {/* Main God Light */}
           <SpotLight
-            position={[selectedBuilding.position[0], 40, selectedBuilding.position[2]]}
-            angle={0.2}
-            penumbra={0.5}
-            attenuation={100}
-            anglePower={6}
-            intensity={250}
+            position={[0, 50, 0]}
+            angle={0.6}
+            penumbra={0.8}
+            attenuation={150}
+            anglePower={4}
+            intensity={300}
             distance={150}
             castShadow
             color={selectedBuilding.color}
             target={spotLightTargetRef.current}
             depthBuffer={depthBuffer}
           />
+          {/* Ambient bounce to fill the shadows */}
           <pointLight 
-            position={[selectedBuilding.position[0], selectedBuilding.position[1] + 10, selectedBuilding.position[2]]}
-            intensity={80}
-            distance={40}
+            position={[0, 15, 0]}
+            intensity={120}
+            distance={60}
             color={selectedBuilding.color}
           />
-        </>
+          {/* Volumetric God Ray Cylinder */}
+          <mesh position={[0, 25, 0]} castShadow={false} receiveShadow={false}>
+            <cylinderGeometry args={[2, 10, 50, 32, 1, true]} />
+            <meshBasicMaterial 
+              color={selectedBuilding.color} 
+              transparent 
+              opacity={0.15} 
+              blending={THREE.AdditiveBlending} 
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </group>
       )}
       
       <primitive object={spotLightTargetRef.current} />
@@ -266,27 +401,27 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
       {/* Terrain */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
         <planeGeometry args={[250, 250, 64, 64]} />
-        <meshStandardMaterial color="#1a202c" roughness={1} metalness={0.1} map={terrainTexture || undefined} />
+        <meshPhysicalMaterial color="#1a202c" roughness={1} metalness={0.1} clearcoat={0.1} map={terrainTexture || undefined} />
       </mesh>
       
       {/* The River */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-40, -0.15, -20]} receiveShadow>
         <planeGeometry args={[20, 250]} />
-        <meshStandardMaterial color="#001122" roughness={0.1} metalness={0.8} />
+        <meshPhysicalMaterial color="#001122" roughness={0.1} metalness={0.8} clearcoat={1.0} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, Math.PI / 6]} position={[-30, -0.16, -100]} receiveShadow>
         <planeGeometry args={[20, 150]} />
-        <meshStandardMaterial color="#001122" roughness={0.1} metalness={0.8} />
-      </mesh>
+        <meshPhysicalMaterial color="#001122" roughness={0.1} metalness={0.8} clearcoat={1.0} />
+      </mesh>>
 
-      {/* Dirt Roads */}
+      {/* Hyper-realistic Dirt/Cobblestone Roads */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.19, -5]} receiveShadow>
-        <planeGeometry args={[60, 4]} />
-        <meshStandardMaterial color="#3e2723" roughness={1} />
+        <planeGeometry args={[60, 4, 32, 2]} />
+        <meshPhysicalMaterial color="#4e3b31" roughness={0.9} clearcoat={0.1} bumpMap={roadTexture || undefined} bumpScale={0.15} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]} position={[-15, -0.19, -15]} receiveShadow>
-        <planeGeometry args={[60, 4]} />
-        <meshStandardMaterial color="#3e2723" roughness={1} />
+        <planeGeometry args={[60, 4, 32, 2]} />
+        <meshPhysicalMaterial color="#4e3b31" roughness={0.9} clearcoat={0.1} bumpMap={roadTexture || undefined} bumpScale={0.15} />
       </mesh>
       
       {hills}
@@ -306,6 +441,7 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
           isSelected,
           isHovered,
           accentColor: building.color,
+          noiseMap: terrainTexture || undefined,
           onHover: (hovered: boolean) => onHover(hovered ? building.id : null),
           onClick: () => onClick(building.id)
         };

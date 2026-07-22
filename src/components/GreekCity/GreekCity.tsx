@@ -14,6 +14,8 @@ export default function GreekCity() {
 
   const selectedBuilding = cityLoreData.find(b => b.id === selectedId);
 
+  const [isLocked, setIsLocked] = useState(false);
+
   // Implement the Point of No Return (Scroll Lock)
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -32,6 +34,8 @@ export default function GreekCity() {
                 (carousel as HTMLElement).style.display = 'none';
               }
             }
+            setIsLocked(true);
+            window.dispatchEvent(new Event('cityLocked'));
           }
         });
       },
@@ -45,10 +49,16 @@ export default function GreekCity() {
     return () => observer.disconnect();
   }, []);
 
+  const [displayedBuilding, setDisplayedBuilding] = useState(selectedBuilding);
+
+  useEffect(() => {
+    if (selectedBuilding) setDisplayedBuilding(selectedBuilding);
+  }, [selectedBuilding]);
+
   return (
-    <div ref={containerRef} className="relative w-full h-screen bg-[#030303] overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-screen bg-[#1c1c1e] overflow-hidden">
       {/* 3D Canvas */}
-      <Canvas shadows camera={{ position: [0, 4, 35], fov: 45 }}>
+      <Canvas shadows camera={{ position: [0, 2, 15], fov: 55 }}>
         <Suspense fallback={null}>
           <CityScene 
             selectedId={selectedId} 
@@ -76,7 +86,9 @@ export default function GreekCity() {
       </div>
 
       {/* Sand Clock Time UI */}
-      <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 z-20 flex flex-col items-center pointer-events-none opacity-80">
+      <div 
+        className={`fixed top-6 left-6 md:top-12 md:left-12 z-50 flex flex-col items-center pointer-events-none drop-shadow-lg transition-opacity duration-1000 ${isLocked ? 'opacity-90' : 'opacity-0'}`}
+      >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500 mb-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -85,31 +97,52 @@ export default function GreekCity() {
         </div>
       </div>
 
-      {/* Lore Card (HTML Overlay) */}
+      {/* Lore Card (3D Parchment Overlay) */}
       <div 
-        className={`absolute bottom-12 right-12 md:right-24 max-w-sm transition-all duration-700 ease-in-out pointer-events-none z-10 ${selectedId ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        className="absolute bottom-12 right-12 md:right-24 max-w-sm pointer-events-none z-10"
+        style={{ perspective: '1200px' }}
       >
-        {selectedBuilding && (
+        {displayedBuilding && (
           <div 
-            className="p-6 glass border-l-4 rounded-r-lg"
-            style={{ borderLeftColor: selectedBuilding.color }}
+            className="p-8 relative transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
+            style={{ 
+              backgroundColor: '#e6d5b8',
+              backgroundImage: 'url("https://www.transparenttextures.com/patterns/old-wall.png")',
+              boxShadow: 'inset 0 0 50px rgba(100, 70, 30, 0.5), 0 20px 40px rgba(0,0,0,0.8)',
+              borderRadius: '2px 10px 4px 8px',
+              border: '1px solid #c4a47c',
+              transformOrigin: 'bottom center',
+              transform: selectedId ? 'rotateX(0deg) scaleY(1) translateY(0)' : 'rotateX(90deg) scaleY(0.5) translateY(50px)',
+              opacity: selectedId ? 1 : 0
+            }}
           >
+            {/* Scroll wooden rods top/bottom */}
+            <div className="absolute top-[-8px] left-[-15px] right-[-15px] h-4 bg-[#4a3219] rounded-full shadow-md border-y border-[#2a1b0a]" />
+            <div className="absolute bottom-[-8px] left-[-15px] right-[-15px] h-4 bg-[#4a3219] rounded-full shadow-md border-y border-[#2a1b0a]" />
+            
+            {/* Scroll Finials (End caps) */}
+            <div className="absolute top-[-12px] left-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
+            <div className="absolute top-[-12px] right-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
+            <div className="absolute bottom-[-12px] left-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
+            <div className="absolute bottom-[-12px] right-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
+            
             <h3 
-              className="text-2xl mb-2"
-              style={{ fontFamily: "'Cinzel', serif", color: selectedBuilding.color }}
+              className="text-3xl mb-4 border-b-2 border-[#a67c52] pb-2 text-center"
+              style={{ fontFamily: "'Cinzel', serif", color: '#3e2723' }}
             >
-              {selectedBuilding.title}
+              {displayedBuilding.title}
             </h3>
-            <div className="h-[1px] w-12 bg-amber-500/50 mb-4" />
-            <p className="text-sm leading-relaxed text-gray-300 font-sans shadow-black drop-shadow-md">
-              {selectedBuilding.excerpt}
+            <p className="text-sm leading-relaxed text-[#4e342e]" style={{ fontFamily: "Georgia, serif" }}>
+              {displayedBuilding.excerpt}
             </p>
-            <button 
-              className="mt-6 text-[10px] tracking-[0.3em] uppercase text-gray-400 hover:text-white pointer-events-auto transition-colors"
-              onClick={() => setSelectedId(null)}
-            >
-              [ Close ]
-            </button>
+            <div className="mt-8 flex justify-center">
+              <button 
+                className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#795548] hover:text-[#3e2723] hover:bg-[#d7c4a3] pointer-events-auto transition-colors border border-[#a67c52] px-6 py-2 rounded-sm"
+                onClick={() => setSelectedId(null)}
+              >
+                Close Scroll
+              </button>
+            </div>
           </div>
         )}
       </div>
