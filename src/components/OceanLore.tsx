@@ -6,39 +6,88 @@ import { ScrollControls, useScroll, Html, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Low-poly Trireme Ship
-function TriremeShip() {
+function Trireme() {
   const group = useRef<THREE.Group>(null);
   
+  // High-frequency dark wet wood texture
+  const woodTexture = React.useMemo(() => {
+    if (typeof window === 'undefined') return new THREE.Texture();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#2a1a10'; // Very dark, wet wood
+    ctx.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 50; i++) {
+      ctx.fillStyle = '#1c1005';
+      ctx.fillRect(0, i * 20.48, 1024, 2);
+      for (let j = 0; j < 1000; j++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.05)';
+        ctx.fillRect(Math.random() * 1024, i * 20.48 + Math.random() * 20, Math.random() * 30 + 5, 1);
+      }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 16;
+    return tex;
+  }, []);
+
   useFrame((state) => {
-    if (!group.current) return;
-    const t = state.clock.getElapsedTime();
-    // Ship rocking back and forth in the waves
-    group.current.rotation.z = Math.sin(t * 2) * 0.1;
-    group.current.rotation.x = Math.sin(t * 1.5) * 0.1;
-    group.current.position.y = Math.sin(t * 3) * 0.5;
+    if (group.current) {
+      // Violent rocking in the waves
+      const t = state.clock.elapsedTime;
+      group.current.rotation.x = Math.sin(t * 2) * 0.1 - 0.05;
+      group.current.rotation.z = Math.cos(t * 1.5) * 0.15;
+      group.current.position.y = Math.sin(t * 2 + 1) * 0.3;
+    }
   });
 
   return (
-    <group ref={group} position={[0, 0, 0]} castShadow receiveShadow>
-      {/* Hull */}
-      <mesh position={[0, 0.5, 0]} castShadow>
-        <boxGeometry args={[2, 1, 6]} />
-        <meshPhysicalMaterial color="#3e2723" roughness={0.9} />
+    <group ref={group} position={[0, 0, 0]}>
+      <mesh position={[0, 0, 0]} rotation={[Math.PI, 0, 0]} castShadow scale={[1, 0.5, 2.5]}>
+        <sphereGeometry args={[2, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshPhysicalMaterial map={woodTexture} color="#2a1a10" roughness={0.4} bumpMap={woodTexture} bumpScale={0.05} metalness={0.1} />
       </mesh>
-      {/* Bow/Ram */}
-      <mesh position={[0, 0.5, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <coneGeometry args={[1, 2, 4]} />
-        <meshPhysicalMaterial color="#1c1c1e" roughness={0.5} metalness={0.8} />
+      
+      {/* Front Ram (Bronze) */}
+      <mesh position={[0, -0.2, 4.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <coneGeometry args={[0.3, 2, 8]} />
+        <meshPhysicalMaterial color="#8c5a2b" metalness={0.9} roughness={0.3} />
       </mesh>
+      
+      {/* Deck */}
+      <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <planeGeometry args={[3.8, 9.8]} />
+        <meshPhysicalMaterial map={woodTexture} color="#3a2518" roughness={0.8} />
+      </mesh>
+
       {/* Mast */}
       <mesh position={[0, 3, 0]} castShadow>
-        <cylinderGeometry args={[0.1, 0.1, 5]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[0.15, 0.15, 6]} />
+        <meshPhysicalMaterial map={woodTexture} color="#2a1a10" roughness={0.9} />
       </mesh>
-      {/* Sail */}
-      <mesh position={[0, 3, 0]} castShadow>
-        <planeGeometry args={[4, 3]} />
-        <meshPhysicalMaterial color="#d4d4d8" roughness={1} side={THREE.DoubleSide} />
+      
+      {/* Yardarm */}
+      <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.1, 0.1, 6]} />
+        <meshPhysicalMaterial map={woodTexture} color="#2a1a10" roughness={0.9} />
+      </mesh>
+
+      {/* Torn Sail */}
+      <mesh position={[0, 3, 0.1]} castShadow receiveShadow>
+        <planeGeometry args={[5.8, 4, 16, 16]} />
+        <meshPhysicalMaterial color="#c0b5a2" roughness={0.9} side={THREE.DoubleSide} transparent opacity={0.8} />
+      </mesh>
+      
+      {/* Rigging Ropes */}
+      <mesh position={[0, 2.5, -2]} rotation={[Math.PI / 4, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.02, 0.02, 6]} />
+        <meshBasicMaterial color="#111" />
+      </mesh>
+      <mesh position={[0, 2.5, 2]} rotation={[-Math.PI / 4, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.02, 0.02, 6]} />
+        <meshBasicMaterial color="#111" />
       </mesh>
     </group>
   );
@@ -162,7 +211,7 @@ export default function OceanLore() {
             <StormLightning />
             
             <StormyOcean />
-            <TriremeShip />
+            <Trireme />
             
           </ScrollControls>
         </Suspense>

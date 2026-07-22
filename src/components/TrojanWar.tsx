@@ -8,49 +8,98 @@ import * as THREE from 'three';
 function WoodenHorse() {
   const group = useRef<THREE.Group>(null);
   
-  // A stylized, low-poly procedural wooden horse
+  // Generate a hyper-realistic wood plank texture
+  const woodTexture = React.useMemo(() => {
+    if (typeof window === 'undefined') return new THREE.Texture();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#3e2723'; // Dark wood base
+    ctx.fillRect(0, 0, 1024, 1024);
+    
+    // Draw planks
+    for (let i = 0; i < 20; i++) {
+      ctx.fillStyle = '#2d1c10';
+      ctx.fillRect(0, i * 51.2, 1024, 2); // Horizontal plank lines
+      ctx.fillStyle = '#4a3219';
+      ctx.fillRect(0, i * 51.2 + 2, 1024, 49); // Plank body
+      
+      // Wood grain noise
+      for (let j = 0; j < 500; j++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
+        ctx.fillRect(Math.random() * 1024, i * 51.2 + Math.random() * 50, Math.random() * 50 + 10, 1);
+      }
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = 16;
+    return tex;
+  }, []);
+  
+  // A stylized, highly-detailed constructed wooden horse
   return (
     <group ref={group} position={[0, -2, 0]} castShadow receiveShadow>
       {/* Body */}
-      <mesh position={[0, 5, 0]} castShadow>
-        <boxGeometry args={[4, 3, 6]} />
-        <meshPhysicalMaterial color="#5c4033" roughness={1} clearcoat={0.1} />
+      <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[2.5, 3, 6, 16]} />
+        <meshPhysicalMaterial map={woodTexture} color="#5c4033" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       
       {/* Neck */}
       <mesh position={[0, 7.5, 3]} rotation={[Math.PI / 6, 0, 0]} castShadow>
-        <boxGeometry args={[1.5, 4, 2]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[1.2, 1.8, 4, 12]} />
+        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       
       {/* Head */}
-      <mesh position={[0, 9.5, 4]} castShadow>
-        <boxGeometry args={[1.5, 1.5, 3]} />
-        <meshPhysicalMaterial color="#3e2723" roughness={1} />
+      <mesh position={[0, 9.5, 4]} rotation={[-Math.PI / 12, 0, 0]} castShadow>
+        <boxGeometry args={[1.2, 1.5, 3.5]} />
+        <meshPhysicalMaterial map={woodTexture} color="#3e2723" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
+      </mesh>
+      {/* Ears */}
+      <mesh position={[-0.4, 10.5, 3]} castShadow>
+        <coneGeometry args={[0.2, 0.8, 4]} />
+        <meshPhysicalMaterial color="#2d1c10" roughness={1} />
+      </mesh>
+      <mesh position={[0.4, 10.5, 3]} castShadow>
+        <coneGeometry args={[0.2, 0.8, 4]} />
+        <meshPhysicalMaterial color="#2d1c10" roughness={1} />
       </mesh>
       
-      {/* Legs */}
+      {/* Binding Ropes (Torus) */}
+      <mesh position={[0, 5, 2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[2.8, 0.1, 8, 24]} />
+        <meshPhysicalMaterial color="#8b5a2b" roughness={1} />
+      </mesh>
+      <mesh position={[0, 5, -2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[2.6, 0.1, 8, 24]} />
+        <meshPhysicalMaterial color="#8b5a2b" roughness={1} />
+      </mesh>
+      
+      {/* Legs (Thick logs) */}
       <mesh position={[-1.5, 2, 2.5]} castShadow>
-        <cylinderGeometry args={[0.3, 0.2, 4]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
+        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       <mesh position={[1.5, 2, 2.5]} castShadow>
-        <cylinderGeometry args={[0.3, 0.2, 4]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
+        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       <mesh position={[-1.5, 2, -2.5]} castShadow>
-        <cylinderGeometry args={[0.3, 0.2, 4]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
+        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       <mesh position={[1.5, 2, -2.5]} castShadow>
-        <cylinderGeometry args={[0.3, 0.2, 4]} />
-        <meshPhysicalMaterial color="#4a3219" roughness={1} />
+        <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
+        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
 
       {/* Wheels/Platform */}
       <mesh position={[0, 0, 0]} castShadow receiveShadow>
         <boxGeometry args={[5, 0.5, 8]} />
-        <meshPhysicalMaterial color="#2d1c10" roughness={1} />
+        <meshPhysicalMaterial map={woodTexture} color="#2d1c10" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       <mesh position={[-2.5, -0.5, 3]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.6, 0.6, 0.4]} />

@@ -2,8 +2,8 @@
 
 import React, { useState, Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import CityScene from './CityScene';
+import WebGLScroll from './WebGLScroll';
 import { cityLoreData } from '@/data/cityLore';
 
 export default function GreekCity() {
@@ -67,6 +67,14 @@ export default function GreekCity() {
             onClick={(id) => setSelectedId(id === selectedId ? null : id)} // Toggle selection
             onTimeUpdate={setGameTime}
           />
+          {displayedBuilding && (
+            <WebGLScroll 
+              title={displayedBuilding.title}
+              excerpt={displayedBuilding.excerpt}
+              isOpen={!!selectedId}
+              onClose={() => setSelectedId(null)}
+            />
+          )}
         </Suspense>
       </Canvas>
 
@@ -95,56 +103,6 @@ export default function GreekCity() {
         <div className="text-[10px] md:text-xs tracking-[0.3em] font-mono text-amber-200">
           {gameTime}
         </div>
-      </div>
-
-      {/* Lore Card (3D Parchment Overlay) */}
-      <div 
-        className="absolute bottom-12 right-12 md:right-24 max-w-sm pointer-events-none z-10"
-        style={{ perspective: '1200px' }}
-      >
-        {displayedBuilding && (
-          <div 
-            className="p-8 relative transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
-            style={{ 
-              backgroundColor: '#e6d5b8',
-              backgroundImage: 'url("https://www.transparenttextures.com/patterns/old-wall.png")',
-              boxShadow: 'inset 0 0 50px rgba(100, 70, 30, 0.5), 0 20px 40px rgba(0,0,0,0.8)',
-              borderRadius: '2px 10px 4px 8px',
-              border: '1px solid #c4a47c',
-              transformOrigin: 'bottom center',
-              transform: selectedId ? 'rotateX(0deg) scaleY(1) translateY(0)' : 'rotateX(90deg) scaleY(0.5) translateY(50px)',
-              opacity: selectedId ? 1 : 0
-            }}
-          >
-            {/* Scroll wooden rods top/bottom */}
-            <div className="absolute top-[-8px] left-[-15px] right-[-15px] h-4 bg-[#4a3219] rounded-full shadow-md border-y border-[#2a1b0a]" />
-            <div className="absolute bottom-[-8px] left-[-15px] right-[-15px] h-4 bg-[#4a3219] rounded-full shadow-md border-y border-[#2a1b0a]" />
-            
-            {/* Scroll Finials (End caps) */}
-            <div className="absolute top-[-12px] left-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
-            <div className="absolute top-[-12px] right-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
-            <div className="absolute bottom-[-12px] left-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
-            <div className="absolute bottom-[-12px] right-[-20px] w-5 h-6 bg-[#b8860b] rounded-full shadow-lg" />
-            
-            <h3 
-              className="text-3xl mb-4 border-b-2 border-[#a67c52] pb-2 text-center"
-              style={{ fontFamily: "'Cinzel', serif", color: '#3e2723' }}
-            >
-              {displayedBuilding.title}
-            </h3>
-            <p className="text-sm leading-relaxed text-[#4e342e]" style={{ fontFamily: "Georgia, serif" }}>
-              {displayedBuilding.excerpt}
-            </p>
-            <div className="mt-8 flex justify-center">
-              <button 
-                className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#795548] hover:text-[#3e2723] hover:bg-[#d7c4a3] pointer-events-auto transition-colors border border-[#a67c52] px-6 py-2 rounded-sm"
-                onClick={() => setSelectedId(null)}
-              >
-                Close Scroll
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Vignette effect */}
