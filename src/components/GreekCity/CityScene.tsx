@@ -412,7 +412,7 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
       <mesh rotation={[-Math.PI / 2, 0, Math.PI / 6]} position={[-30, -0.16, -100]} receiveShadow>
         <planeGeometry args={[20, 150]} />
         <meshPhysicalMaterial color="#001122" roughness={0.1} metalness={0.8} clearcoat={1.0} />
-      </mesh>>
+      </mesh>
 
       {/* Hyper-realistic Dirt/Cobblestone Roads */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.19, -5]} receiveShadow>
