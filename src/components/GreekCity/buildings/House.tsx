@@ -13,9 +13,10 @@ interface HouseProps {
   onHover: (hovered: boolean) => void;
   onClick: () => void;
   accentColor: string;
+  noiseMap?: THREE.Texture;
 }
 
-export default function House({ position, rotation, scale, isSelected, isHovered, onHover, onClick, accentColor }: HouseProps) {
+export default function House({ position, rotation, scale, isSelected, isHovered, onHover, onClick, accentColor, noiseMap }: HouseProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const materialRef = useRef<THREE.MeshPhysicalMaterial>(null!);
 
@@ -39,13 +40,13 @@ export default function House({ position, rotation, scale, isSelected, isHovered
       {/* Plinth / Base */}
       <mesh position={[0, 0.25, 0]} receiveShadow castShadow>
         <boxGeometry args={[4, 0.5, 5]} />
-        <meshPhysicalMaterial color="#d4d4d8" roughness={1.0} />
+        <meshPhysicalMaterial color="#d4d4d8" roughness={1.0} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Main walls */}
       <mesh position={[0, 1.5, -0.5]} receiveShadow castShadow>
         <boxGeometry args={[3.2, 2, 3]} />
-        <meshPhysicalMaterial ref={materialRef} color="#e4e4e7" roughness={1.0} emissiveIntensity={0.5} />
+        <meshPhysicalMaterial ref={materialRef} color="#e4e4e7" roughness={1.0} emissiveIntensity={0.5} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Roof Base */}
@@ -63,17 +64,17 @@ export default function House({ position, rotation, scale, isSelected, isHovered
       {/* Door */}
       <mesh position={[0, 1.1, 1.05]} receiveShadow castShadow>
         <boxGeometry args={[0.8, 1.4, 0.1]} />
-        <meshPhysicalMaterial color="#3f3f46" roughness={0.9} />
+        <meshPhysicalMaterial color="#3f3f46" roughness={0.9} map={noiseMap} />
       </mesh>
       
       {/* Front Porch (Stoa) Pillars */}
       <mesh position={[-1.2, 1.5, 1.8]} castShadow receiveShadow>
         <cylinderGeometry args={[0.15, 0.15, 2, 8]} />
-        <meshPhysicalMaterial color="#d4d4d8" />
+        <meshPhysicalMaterial color="#d4d4d8" map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
       <mesh position={[1.2, 1.5, 1.8]} castShadow receiveShadow>
         <cylinderGeometry args={[0.15, 0.15, 2, 8]} />
-        <meshPhysicalMaterial color="#d4d4d8" />
+        <meshPhysicalMaterial color="#d4d4d8" map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
     </group>
   );

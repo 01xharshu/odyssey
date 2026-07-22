@@ -13,9 +13,10 @@ interface TempleProps {
   onHover: (hovered: boolean) => void;
   onClick: () => void;
   accentColor: string;
+  noiseMap?: THREE.Texture;
 }
 
-export default function Temple({ position, rotation, scale, isSelected, isHovered, onHover, onClick, accentColor }: TempleProps) {
+export default function Temple({ position, rotation, scale, isSelected, isHovered, onHover, onClick, accentColor, noiseMap }: TempleProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const materialRef = useRef<THREE.MeshPhysicalMaterial>(null!);
 
@@ -56,17 +57,17 @@ export default function Temple({ position, rotation, scale, isSelected, isHovere
       {/* Base / Stylobate */}
       <mesh position={[0, 0, 0]} receiveShadow castShadow>
         <boxGeometry args={[5, 0.5, 7]} />
-        <meshPhysicalMaterial ref={materialRef} color="#a3a3a3" roughness={1} emissiveIntensity={0.5} />
+        <meshPhysicalMaterial ref={materialRef} color="#a3a3a3" roughness={1} emissiveIntensity={0.5} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
       
       {/* Steps (Crepidoma) */}
       <mesh position={[0, -0.25, 0]} receiveShadow castShadow>
         <boxGeometry args={[5.5, 0.5, 7.5]} />
-        <meshPhysicalMaterial color="#8e8e8e" roughness={1} />
+        <meshPhysicalMaterial color="#8e8e8e" roughness={1} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
       <mesh position={[0, -0.5, 0]} receiveShadow castShadow>
         <boxGeometry args={[6, 0.5, 8]} />
-        <meshPhysicalMaterial color="#7a7a7a" roughness={1} />
+        <meshPhysicalMaterial color="#7a7a7a" roughness={1} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Columns */}
@@ -75,31 +76,31 @@ export default function Temple({ position, rotation, scale, isSelected, isHovere
       {/* Broken Column */}
       <mesh position={[2.5, 0.5, 0]} rotation={[0, 0, Math.PI / 2.5]} castShadow receiveShadow>
         <cylinderGeometry args={[0.2, 0.25, 1.5, 16]} />
-        <meshPhysicalMaterial color="#c0c0c0" roughness={0.9} metalness={0.1} />
+        <meshPhysicalMaterial color="#c0c0c0" roughness={0.9} metalness={0.1} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Architrave */}
       <mesh position={[0, 3.1, 0]} castShadow receiveShadow>
         <boxGeometry args={[5, 0.4, 7]} />
-        <meshPhysicalMaterial color="#a3a3a3" roughness={0.9} />
+        <meshPhysicalMaterial color="#a3a3a3" roughness={0.9} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Frieze with some basic details (blocks) */}
       <mesh position={[0, 3.4, 0]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 0.3, 6.8]} />
-        <meshPhysicalMaterial color="#8e8e8e" roughness={0.9} />
+        <meshPhysicalMaterial color="#8e8e8e" roughness={0.9} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
 
       {/* Pediment (Triangular Roof) */}
       <mesh position={[0, 4.3, 0]} rotation={[0, 0, 0]} castShadow receiveShadow>
         <coneGeometry args={[3.8, 1.8, 4]} />
-        <meshPhysicalMaterial color="#8e8e8e" roughness={0.9} />
+        <meshPhysicalMaterial color="#8e8e8e" roughness={0.9} map={noiseMap} bumpMap={noiseMap} bumpScale={0.1} />
       </mesh>
       
       {/* Inner Cella (Sanctuary room) */}
       <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
         <boxGeometry args={[2.5, 3, 4]} />
-        <meshPhysicalMaterial color="#525252" roughness={1} />
+        <meshPhysicalMaterial color="#525252" roughness={1} map={noiseMap} />
       </mesh>
     </group>
   );

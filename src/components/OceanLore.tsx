@@ -2,10 +2,50 @@
 
 import React, { Suspense, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ScrollControls, useScroll, Html, Stars } from '@react-three/drei';
+import { ScrollControls, useScroll, Html, Stars, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Low-poly Trireme Ship
+function OarRow({ index, woodTexture }: { index: number, woodTexture: THREE.Texture }) {
+  const leftOar = useRef<THREE.Group>(null);
+  const rightOar = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (leftOar.current) {
+      leftOar.current.rotation.z = Math.sin(t * 2 + index * 0.5) * 0.2 + 0.3;
+    }
+    if (rightOar.current) {
+      rightOar.current.rotation.z = -Math.sin(t * 2 + index * 0.5) * 0.2 - 0.3;
+    }
+  });
+
+  return (
+    <>
+      <group ref={leftOar} position={[-1.5, 0.5, -3.5 + index * 0.8]} rotation={[0.2, 0, 0]}>
+        <mesh position={[0, -1, 0]}>
+          <cylinderGeometry args={[0.05, 0.02, 2.5]} />
+          <meshPhysicalMaterial map={woodTexture} color="#3a2518" />
+        </mesh>
+        <mesh position={[0, -2.2, 0]}>
+          <boxGeometry args={[0.3, 0.6, 0.05]} />
+          <meshPhysicalMaterial map={woodTexture} color="#3a2518" />
+        </mesh>
+      </group>
+      <group ref={rightOar} position={[1.5, 0.5, -3.5 + index * 0.8]} rotation={[-0.2, 0, 0]}>
+        <mesh position={[0, -1, 0]}>
+          <cylinderGeometry args={[0.05, 0.02, 2.5]} />
+          <meshPhysicalMaterial map={woodTexture} color="#3a2518" />
+        </mesh>
+        <mesh position={[0, -2.2, 0]}>
+          <boxGeometry args={[0.3, 0.6, 0.05]} />
+          <meshPhysicalMaterial map={woodTexture} color="#3a2518" />
+        </mesh>
+      </group>
+    </>
+  );
+}
+
 function Trireme() {
   const group = useRef<THREE.Group>(null);
   
@@ -77,10 +117,15 @@ function Trireme() {
         <meshPhysicalMaterial map={woodTexture} color="#2a1a10" roughness={0.9} />
       </mesh>
 
-      {/* Torn Sail */}
-      <mesh position={[0, 3, 0.1]} castShadow receiveShadow>
-        <planeGeometry args={[5.8, 4, 16, 16]} />
-        <meshPhysicalMaterial color="#c0b5a2" roughness={0.9} side={THREE.DoubleSide} transparent opacity={0.8} />
+      {/* Oars */}
+      {Array.from({ length: 10 }).map((_, i) => (
+        <OarRow key={`oar-row-${i}`} index={i} woodTexture={woodTexture} />
+      ))}
+
+      {/* Curved Sail */}
+      <mesh position={[0, 3, 0]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[3, 3, 4, 32, 1, true, 0, Math.PI * 0.8]} />
+        <meshPhysicalMaterial color="#c0b5a2" roughness={0.9} side={THREE.DoubleSide} transparent opacity={0.9} />
       </mesh>
       
       {/* Rigging Ropes */}
@@ -208,17 +253,26 @@ export default function OceanLore() {
             <HtmlOverlays />
             
             {/* The Environment */}
-            <fog attach="fog" args={['#000510', 10, 40]} />
-            <color attach="background" args={['#000510']} />
+            <fog attach="fog" args={['#051525', 10, 60]} />
+            <color attach="background" args={['#051525']} />
             <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
             
             {/* Lighting */}
-            <ambientLight intensity={0.1} color="#002244" />
-            <directionalLight position={[10, 20, 10]} intensity={0.5} color="#4488ff" castShadow />
+            <ambientLight intensity={0.5} color="#113355" />
+            <directionalLight position={[10, 20, 10]} intensity={1.2} color="#66aaff" castShadow />
             <StormLightning />
             
             <StormyOcean />
-            <Trireme />
+            <PresentationControls
+              global
+
+              snap={true}
+              rotation={[0, 0, 0]}
+              polar={[-0.1, 0.1]}
+              azimuth={[-Math.PI / 4, Math.PI / 4]}
+            >
+              <Trireme />
+            </PresentationControls>
             
           </ScrollControls>
         </Suspense>

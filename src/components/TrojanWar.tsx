@@ -2,7 +2,7 @@
 
 import React, { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Sparkles, ScrollControls, useScroll, Html } from '@react-three/drei';
+import { Sparkles, ScrollControls, useScroll, Html, PresentationControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 function WoodenHorse() {
@@ -205,7 +205,16 @@ export default function TrojanWar() {
             </mesh>
 
             {/* The Horse */}
-            <WoodenHorse />
+            <PresentationControls
+              global
+
+              snap={true}
+              rotation={[0, 0, 0]}
+              polar={[-0.1, 0.1]}
+              azimuth={[-Math.PI / 4, Math.PI / 4]}
+            >
+              <WoodenHorse />
+            </PresentationControls>
             
             {/* Embers/Sparks */}
             <Sparkles count={500} scale={20} size={4} speed={0.4} opacity={0.5} color="#ffaa00" position={[0, 5, 0]} />
