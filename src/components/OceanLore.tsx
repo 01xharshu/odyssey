@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useRef, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ScrollControls, useScroll, Html, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -43,8 +43,11 @@ function Trireme() {
     }
   });
 
+  const { viewport } = useThree();
+  const scale = Math.min(1, viewport.width / 12);
+
   return (
-    <group ref={group} position={[0, 0, 0]}>
+    <group ref={group} position={[0, 0, 0]} scale={scale}>
       <mesh position={[0, 0, 0]} rotation={[Math.PI, 0, 0]} castShadow scale={[1, 0.5, 2.5]}>
         <sphereGeometry args={[2, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshPhysicalMaterial map={woodTexture} color="#2a1a10" roughness={0.4} bumpMap={woodTexture} bumpScale={0.05} metalness={0.1} />
@@ -143,12 +146,16 @@ function StormLightning() {
 
 function OceanCamera() {
   const scroll = useScroll();
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = scroll.offset;
     // Move the camera past the ship as the journey progresses
-    state.camera.position.x = Math.sin(t * Math.PI) * 10;
-    state.camera.position.z = 15 - t * 30; // Move forward
-    state.camera.position.y = 5 + Math.sin(state.clock.getElapsedTime()) * 0.5; // Bob with the waves
+    const targetX = Math.sin(t * Math.PI) * 10;
+    const targetZ = 15 - t * 30; // Move forward
+    const targetY = 5 + Math.sin(state.clock.getElapsedTime()) * 0.5; // Bob with the waves
+    
+    state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, targetX, 4, delta);
+    state.camera.position.y = THREE.MathUtils.damp(state.camera.position.y, targetY, 4, delta);
+    state.camera.position.z = THREE.MathUtils.damp(state.camera.position.z, targetZ, 4, delta);
     state.camera.lookAt(0, 2, 0);
   });
   return null;
@@ -194,7 +201,7 @@ function HtmlOverlays() {
 export default function OceanLore() {
   return (
     <section className="snap-start shrink-0 relative w-full h-screen bg-[#000510] overflow-hidden">
-      <Canvas shadows camera={{ position: [0, 5, 15], fov: 50 }}>
+      <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 50 }}>
         <Suspense fallback={null}>
           <ScrollControls pages={3} damping={0.1}>
             <OceanCamera />

@@ -1,10 +1,22 @@
 'use client';
 
-import React, { useState, Suspense, useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 import CityScene from './CityScene';
 import WebGLScroll from './WebGLScroll';
 import { cityLoreData } from '@/data/cityLore';
+
+function ResponsiveCamera() {
+  const { camera, size } = useThree();
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = size.width < 768 ? 75 : 55;
+      camera.updateProjectionMatrix();
+    }
+  }, [size.width, camera]);
+  return null;
+}
 
 export default function GreekCity() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -58,7 +70,8 @@ export default function GreekCity() {
   return (
     <div ref={containerRef} className="snap-start shrink-0 relative w-full h-screen bg-[#1c1c1e] overflow-hidden">
       {/* 3D Canvas */}
-      <Canvas shadows camera={{ position: [0, 2, 15], fov: 55 }}>
+      <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2, 15], fov: 55 }}>
+        <ResponsiveCamera />
         <Suspense fallback={null}>
           <CityScene 
             selectedId={selectedId} 

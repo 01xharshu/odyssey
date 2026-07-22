@@ -1,13 +1,12 @@
 'use client';
 
 import React, { Suspense, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sparkles, ScrollControls, useScroll, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 function WoodenHorse() {
-  const group = useRef<THREE.Group>(null);
-  
+  const group = useRef<THREE.Group>(null);  
   // Generate a hyper-realistic wood plank texture
   const woodTexture = React.useMemo(() => {
     if (typeof window === 'undefined') return new THREE.Texture();
@@ -38,9 +37,12 @@ function WoodenHorse() {
     return tex;
   }, []);
   
+  const { viewport } = useThree();
+  const scale = Math.min(1, viewport.width / 12);
+
   // A stylized, highly-detailed constructed wooden horse
   return (
-    <group ref={group} position={[0, -2, 0]} castShadow receiveShadow>
+    <group ref={group} position={[0, -2, 0]} scale={scale} castShadow receiveShadow>
       {/* Body */}
       <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[2.5, 3, 6, 16]} />
@@ -123,13 +125,17 @@ function WoodenHorse() {
 
 function SceneCamera() {
   const scroll = useScroll();
-  useFrame((state) => {
+  useFrame((state, delta) => {
     // scroll.offset goes from 0 to 1
     const t = scroll.offset;
-    // Orbit around the horse as user scrolls
-    state.camera.position.x = Math.sin(t * Math.PI * 1.5) * 15;
-    state.camera.position.z = Math.cos(t * Math.PI * 1.5) * 15;
-    state.camera.position.y = 2 + t * 4;
+    // Orbit around the horse
+    const targetX = Math.sin(t * Math.PI * 1.5) * 15;
+    const targetZ = Math.cos(t * Math.PI * 1.5) * 15;
+    const targetY = 2 + t * 4;
+    
+    state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, targetX, 4, delta);
+    state.camera.position.y = THREE.MathUtils.damp(state.camera.position.y, targetY, 4, delta);
+    state.camera.position.z = THREE.MathUtils.damp(state.camera.position.z, targetZ, 4, delta);
     state.camera.lookAt(0, 4, 0);
   });
   return null;
@@ -176,7 +182,7 @@ function HtmlOverlays() {
 export default function TrojanWar() {
   return (
     <section className="snap-start shrink-0 relative w-full h-screen bg-[#0a0000] overflow-hidden">
-      <Canvas shadows camera={{ position: [0, 2, 15], fov: 50 }}>
+      <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2, 15], fov: 50 }}>
         <Suspense fallback={null}>
           <ScrollControls pages={3} damping={0.1}>
             <SceneCamera />
