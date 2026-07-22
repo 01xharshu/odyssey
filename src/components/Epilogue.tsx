@@ -1,26 +1,22 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useTransform, motion, MotionValue } from 'framer-motion';
 
-export default function Epilogue() {
+export default function Epilogue({ progress }: { progress: MotionValue<number> }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
 
   // Reveal animations as user scrolls into the section
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.6, 0.8], [0, 1, 1, 0]);
-  const y = useTransform(scrollYProgress, [0, 0.2], [60, 0]);
-  const lineWidth = useTransform(scrollYProgress, [0.1, 0.3], [0, 80]);
+  const opacity = useTransform(progress, [0, 0.2, 0.6, 0.8], [0, 1, 1, 0]);
+  const y = useTransform(progress, [0, 0.2], [60, 0]);
+  const lineWidth = useTransform(progress, [0.1, 0.3], [0, 80]);
 
   return (
     <section
       ref={containerRef}
-      className="relative w-full h-[300vh] bg-[#1c1c1e] z-10"
+      className="relative w-full h-full bg-transparent z-10"
     >
-      <div className="sticky top-0 w-full h-screen flex flex-col items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden">
         {/* Ambient gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] via-transparent to-[#1c1c1e] pointer-events-none" />
 

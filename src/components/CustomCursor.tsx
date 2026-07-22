@@ -108,7 +108,7 @@ export default function CustomCursor() {
           style={{
             width: `${6 - i * 0.5}px`,
             height: `${6 - i * 0.5}px`,
-            background: `radial-gradient(circle, rgba(245,158,11,${0.6 - i * 0.07}) 0%, transparent 70%)`,
+            background: `radial-gradient(circle, rgba(255,255,255,${0.6 - i * 0.07}) 0%, transparent 70%)`,
             opacity: isVisible ? 1 : 0,
             transition: 'opacity 0.3s',
           }}
@@ -117,22 +117,22 @@ export default function CustomCursor() {
       {/* Main cursor */}
       <div
         ref={cursorRef}
-        className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-screen"
+        className="fixed top-0 left-0 pointer-events-none z-[9999]"
         style={{
           opacity: isVisible ? 1 : 0,
           transition: 'opacity 0.3s',
         }}
       >
         <div
-          className="rounded-full border transition-all duration-300"
+          className="rounded-full border transition-all duration-300 flex items-center justify-center"
           style={{
             width: isHovering ? '48px' : '24px',
             height: isHovering ? '48px' : '24px',
-            borderColor: 'rgba(245,158,11,0.8)',
-            boxShadow: '0 0 15px rgba(245,158,11,0.3), inset 0 0 8px rgba(245,158,11,0.15)',
-            background: isHovering
-              ? 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)',
+            borderColor: 'rgba(255,255,255,0.4)',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
         />
       </div>

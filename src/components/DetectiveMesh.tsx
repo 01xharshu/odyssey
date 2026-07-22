@@ -3,7 +3,7 @@
 import React, { Suspense, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useScroll, MotionValue } from 'framer-motion';
-import { Html, Line, Sphere, Text, Sparkles } from '@react-three/drei';
+import { Html, Line, Sphere, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- Character Data ---
@@ -76,40 +76,46 @@ function StringBoard({ scrollYProgress }: { scrollYProgress: MotionValue<number>
   const [activeConnection, setActiveConnection] = useState<number>(-1);
   const [activeNode, setActiveNode] = useState<number>(-1);
 
+  React.useEffect(() => {
+    const updateState = (t: number) => {
+      const newRevealed = new Set<number>();
+      let newActive = -1;
+      let newNode = -1;
+
+      connections.forEach((conn, index) => {
+        if (t >= conn.scrollStart) {
+          newRevealed.add(index);
+        }
+        if (t >= conn.scrollStart && t <= conn.scrollEnd + 0.05) {
+          newActive = index;
+        }
+      });
+
+      if (newActive >= 0) {
+        const conn = connections[newActive];
+        const progress = (t - conn.scrollStart) / (conn.scrollEnd - conn.scrollStart);
+        newNode = progress < 0.5 ? conn.source : conn.target;
+      }
+
+      setActiveConnection(prev => prev !== newActive ? newActive : prev);
+      setActiveNode(prev => prev !== newNode ? newNode : prev);
+      setRevealedConnections(prev => prev.size !== newRevealed.size ? newRevealed : prev);
+    };
+
+    // Run once on mount to handle direct navigation / hot reloads
+    updateState(scrollYProgress.get());
+
+    // Listen to scroll changes
+    return scrollYProgress.on('change', updateState);
+  }, [scrollYProgress]);
+
   useFrame((state) => {
     const t = scrollYProgress.get();
-
-    // Determine which connections are revealed and which is active
-    const newRevealed = new Set<number>();
-    let newActive = -1;
-    let newNode = -1;
-
-    connections.forEach((conn, index) => {
-      if (t >= conn.scrollStart) {
-        newRevealed.add(index);
-      }
-      if (t >= conn.scrollStart && t <= conn.scrollEnd + 0.05) {
-        newActive = index;
-      }
-    });
-
-    // Find the most relevant node for the active connection
-    if (newActive >= 0) {
-      const conn = connections[newActive];
-      const progress = (t - conn.scrollStart) / (conn.scrollEnd - conn.scrollStart);
-      newNode = progress < 0.5 ? conn.source : conn.target;
-    }
-
-    setRevealedConnections(newRevealed);
-    setActiveConnection(newActive);
-    setActiveNode(newNode);
-
-    // Slow orbit camera
-    const orbitRadius = 14;
-    state.camera.position.x = Math.sin(t * Math.PI * 1.5) * orbitRadius;
-    state.camera.position.y = 2 + Math.sin(t * Math.PI) * 3;
-    state.camera.position.z = Math.cos(t * Math.PI * 1.5) * orbitRadius;
-    state.camera.lookAt(0, 1, 0);
+    // Subtle parallax camera in front of the board
+    state.camera.position.x = Math.sin(t * Math.PI) * 6 - 3;
+    state.camera.position.y = 2 - t * 4;
+    state.camera.position.z = 14 - Math.sin(t * Math.PI) * 3;
+    state.camera.lookAt(0, 1, -2);
   });
 
   return (
@@ -139,18 +145,19 @@ function StringBoard({ scrollYProgress }: { scrollYProgress: MotionValue<number>
             </Sphere>
 
             {/* Character name */}
-            <Text
-              position={[0, -0.6, 0.1]}
-              fontSize={0.35}
-              color="white"
-              font="https://fonts.gstatic.com/s/cinzel/v19/8vIX7kw6OSWKfXRi71A4N17O.woff"
-              anchorX="center"
-              anchorY="top"
-              outlineWidth={0.02}
-              outlineColor="black"
-            >
-              {node.name}
-            </Text>
+            <Html position={[0, 0.6, 0.1]} center className="pointer-events-none">
+              <div 
+                className={`px-3 py-1 rounded-sm backdrop-blur-sm border ${isActive ? 'bg-black/90 border-[#ff0044]' : 'bg-black/60 border-gray-700/50'}`}
+                style={{ transition: 'all 0.3s ease' }}
+              >
+                <p 
+                  className={`font-serif tracking-[0.2em] whitespace-nowrap text-sm md:text-base ${isActive ? 'text-[#ff0044]' : 'text-gray-300'}`}
+                  style={{ fontFamily: "'Cinzel', serif" }}
+                >
+                  {node.name}
+                </p>
+              </div>
+            </Html>
 
             {/* Fate icon — skull or laurel */}
             {isActive && (
@@ -280,16 +287,12 @@ function ScrollProgress({ scrollYProgress }: { scrollYProgress: MotionValue<numb
   );
 }
 
-export default function DetectiveMesh() {
+export default function DetectiveMesh({ progress }: { progress: MotionValue<number> }) {
   const containerRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
 
   return (
-    <section ref={containerRef} className="relative w-full h-[400vh] bg-[#1c1c1e] z-10">
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
+    <section ref={containerRef} className="relative w-full h-full bg-transparent z-10">
+      <div className="absolute inset-0 h-full w-full overflow-hidden">
 
         <div className="absolute top-8 left-0 w-full text-center z-10 pointer-events-none">
           <span className="text-[10px] tracking-[0.5em] uppercase text-red-500/50 font-sans">Interlude</span>
@@ -305,14 +308,14 @@ export default function DetectiveMesh() {
             <pointLight position={[-10, -10, -10]} intensity={0.4} color="#ff0044" />
             <pointLight position={[0, 8, 5]} intensity={0.6} color="#f59e0b" />
 
-            <StringBoard scrollYProgress={scrollYProgress} />
+            <StringBoard scrollYProgress={progress} />
 
             {/* Dust Particles */}
             <Sparkles count={800} scale={30} size={1} speed={0.15} opacity={0.3} color="#666666" />
           </Suspense>
         </Canvas>
 
-        <ScrollProgress scrollYProgress={scrollYProgress} />
+        <ScrollProgress scrollYProgress={progress} />
       </div>
     </section>
   );

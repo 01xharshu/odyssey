@@ -6,14 +6,15 @@ import { useMousePosition } from '@/hooks/useMousePosition';
 import TextPanel from './TextPanel';
 import CharacterCard from './CharacterCard';
 
+import { MotionValue } from 'framer-motion';
+
 const WebGLBackground = lazy(() => import('./WebGLBackground'));
 
-export default function OdysseyCarousel() {
+export default function OdysseyCarousel({ progress }: { progress: MotionValue<number> }) {
   const [rotation, setRotation] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const tickingRef = useRef(false);
   const mouse = useMousePosition();
 
   const numItems = odysseyCharacters.length;
@@ -23,69 +24,23 @@ export default function OdysseyCarousel() {
   const mod = (n: number, m: number) => ((n % m) + m) % m;
 
   useEffect(() => {
-    const updateScroll = () => {
-      if (!containerRef.current) return;
+    const unsub = progress.on('change', (v) => {
+      setScrollProgress(v);
+      
+      // Map 0-1 progress to full rotation (e.g., 2 full loops or just enough to see everyone)
+      // Since we have 7 items, rotating by Math.PI * 2 * 1.5 feels good
+      const newRotation = -(v * Math.PI * 2 * 1.5);
+      setRotation(newRotation);
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const scrollableDistance =
-        containerRef.current.offsetHeight - window.innerHeight;
-
-      if (rect.top <= 0) {
-        const scrolledPx = -rect.top;
-
-        // Map scroll distance to rotation
-        const scrollSensitivity = 1500;
-        const newRotation =
-          -(scrolledPx / scrollSensitivity) * (Math.PI * 2);
-
-        setRotation(newRotation);
-
-        // Scroll progress for WebGL
-        const progress =
-          scrollableDistance > 0
-            ? Math.min(Math.max(scrolledPx / scrollableDistance, 0), 1)
-            : 0;
-        setScrollProgress(progress);
-
-        // Calculate active index
-        const normalizedAngle = mod(-newRotation, 2 * Math.PI);
-        const calculatedIndex =
-          Math.round(normalizedAngle / stepAngle) % numItems;
-        setActiveIndex(calculatedIndex);
-      } else {
-        setRotation(0);
-        setActiveIndex(0);
-        setScrollProgress(0);
-      }
-
-      tickingRef.current = false;
-    };
-
-    const handleScroll = () => {
-      if (!tickingRef.current) {
-        tickingRef.current = true;
-        requestAnimationFrame(updateScroll);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    updateScroll();
-
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [stepAngle, numItems]);
+      const normalizedAngle = mod(-newRotation, 2 * Math.PI);
+      const calculatedIndex = Math.round(normalizedAngle / stepAngle) % numItems;
+      setActiveIndex(calculatedIndex);
+    });
+    return unsub;
+  }, [progress, stepAngle, numItems]);
 
   const handleCardClick = (index: number) => {
-    if (!containerRef.current) return;
-    const containerTop =
-      window.scrollY + containerRef.current.getBoundingClientRect().top;
-    const scrollSensitivity = 1500;
-    const targetScrollPx =
-      index * (stepAngle / (Math.PI * 2)) * scrollSensitivity;
-
-    window.scrollTo({
-      top: containerTop + targetScrollPx,
-      behavior: 'smooth',
-    });
+    // Scroll hijacking is now disabled as it breaks the master timeline
   };
 
   const activeCharacter = odysseyCharacters[activeIndex];
@@ -112,11 +67,11 @@ export default function OdysseyCarousel() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
+      className="relative w-full h-full bg-transparent text-white selection:bg-amber-500 selection:text-black z-10"
       style={{ fontFamily: "'Cinzel', serif" }}
     >
-      {/* Sticky viewport */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col md:flex-row">
+      {/* Container viewport */}
+      <div className="absolute inset-0 h-full w-full overflow-hidden flex flex-col md:flex-row">
         {/* Dynamic backgrounds */}
         {odysseyCharacters.map((character, index) => (
           <div

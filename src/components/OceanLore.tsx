@@ -242,36 +242,30 @@ function HtmlOverlays({ scrollYProgress }: { scrollYProgress: MotionValue<number
   );
 }
 
-export default function OceanLore() {
+export default function OceanLore({ progress }: { progress: MotionValue<number> }) {
   const containerRef = useRef<HTMLElement>(null);
   const isInView = useInView(containerRef, { margin: "0px 0px 0px 0px" });
-  const { scrollYProgress } = useScroll({ 
-    target: containerRef, 
-    offset: ["start start", "end end"] 
-  });
 
   return (
-    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-10">
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <Canvas frameloop={isInView ? 'always' : 'demand'} shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 50 }}>
+    <section ref={containerRef} className="relative w-full h-full bg-transparent z-10">
+      <div className="absolute inset-0 h-full w-full overflow-hidden">
+        <Canvas frameloop={isInView ? 'always' : 'demand'} shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 5, 15], fov: 60 }}>
           <Suspense fallback={null}>
-            <OceanCamera scrollYProgress={scrollYProgress} />
-            <HtmlOverlays scrollYProgress={scrollYProgress} />
-            
-            {/* The Environment */}
-            <fog attach="fog" args={['#051525', 10, 60]} />
+            <OceanCamera scrollYProgress={progress} />
+            <HtmlOverlays scrollYProgress={progress} />
+
             <color attach="background" args={['#051525']} />
+            <fog attach="fog" args={['#051525', 10, 60]} />
             <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
-            
-            {/* Lighting */}
+
             <ambientLight intensity={0.5} color="#113355" />
             <directionalLight position={[10, 20, 10]} intensity={1.2} color="#66aaff" castShadow />
-            <StormLightning />
             
+            <StormLightning />
             <StormyOcean />
+
             <PresentationControls
               global={false}
-
               snap={true}
               rotation={[0, 0, 0]}
               polar={[-0.1, 0.1]}

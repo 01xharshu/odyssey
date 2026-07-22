@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { useInView, useScroll, useTransform, motion } from 'framer-motion';
+import { useInView, useScroll, useTransform, motion, MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 import CityScene from './CityScene';
 import WebGLScroll from './WebGLScroll';
@@ -19,7 +19,7 @@ function ResponsiveCamera() {
   return null;
 }
 
-export default function GreekCity() {
+export default function GreekCity({ progress }: { progress: MotionValue<number> }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [gameTime, setGameTime] = useState<string>("06:00 AM");
@@ -28,40 +28,23 @@ export default function GreekCity() {
 
   const selectedBuilding = cityLoreData.find(b => b.id === selectedId);
 
-  const [isLocked, setIsLocked] = useState(false);
-
-  // Implement the Point of No Return (Scroll Lock)
+  // Time progression based on local progress
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.9) {
-            document.body.style.overflow = 'hidden';
-            window.scrollTo({
-              top: document.body.scrollHeight,
-              behavior: 'smooth'
-            });
-            const mainBody = document.querySelector('main');
-            if (mainBody) {
-              const carousel = mainBody.querySelector('.relative.h-\\[400vh\\]');
-              if (carousel) {
-                (carousel as HTMLElement).style.display = 'none';
-              }
-            }
-            setIsLocked(true);
-            window.dispatchEvent(new Event('cityLocked'));
-          }
-        });
-      },
-      { threshold: 0.9 }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
+    const unsub = progress.on("change", (v) => {
+      // Maps 0-1 to 06:00 AM to 06:00 PM (12 hours)
+      const hours = 6 + Math.floor(v * 12);
+      const mins = Math.floor((v * 12 * 60) % 60);
+      
+      const ampm = hours >= 12 && hours < 24 ? 'PM' : 'AM';
+      const displayHours = hours > 12 ? hours - 12 : hours;
+      
+      const hStr = displayHours.toString().padStart(2, '0');
+      const mStr = mins.toString().padStart(2, '0');
+      
+      setGameTime(`${hStr}:${mStr} ${ampm}`);
+    });
+    return unsub;
+  }, [progress]);
 
   const [displayedBuilding, setDisplayedBuilding] = useState(selectedBuilding);
 
@@ -69,82 +52,93 @@ export default function GreekCity() {
     if (selectedBuilding) setDisplayedBuilding(selectedBuilding);
   }, [selectedBuilding]);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"]
-  });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.1, 0.8, 1], [0, 1, 1, 0]);
+  const opacity = useTransform(progress, [0, 0.1, 1], [0, 1, 1]);
 
   return (
-    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-10">
-      <div className="sticky top-0 w-full h-screen overflow-hidden">
-      {/* 3D Canvas */}
-      <Canvas frameloop={isInView ? 'always' : 'demand'} shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 2, 15], fov: 55 }}>
-        <ResponsiveCamera />
-        <Suspense fallback={null}>
-          <CityScene 
-            selectedId={selectedId} 
-            hoveredId={hoveredId}
-            onHover={setHoveredId}
-            onClick={(id) => setSelectedId(id === selectedId ? null : id)} // Toggle selection
-            onTimeUpdate={setGameTime}
-          />
-          {displayedBuilding && (
-            <WebGLScroll 
-              title={displayedBuilding.title}
-              excerpt={displayedBuilding.excerpt}
-              isOpen={!!selectedId}
-              onClose={() => setSelectedId(null)}
+    <motion.section ref={containerRef} className="relative w-full h-full bg-transparent" style={{ opacity }}>
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]}>
+          <ResponsiveCamera />
+          <Suspense fallback={null}>
+            {displayedBuilding && (
+              <WebGLScroll 
+                title={displayedBuilding.title}
+                excerpt={displayedBuilding.excerpt}
+                isOpen={!!selectedId}
+                onClose={() => setSelectedId(null)}
+              />
+            )}
+            <CityScene 
+              selectedId={selectedId} 
+              hoveredId={hoveredId}
+              onHover={setHoveredId}
+              onClick={(id) => setSelectedId(id === selectedId ? null : id)} // Toggle selection
+              onTimeUpdate={setGameTime}
             />
-          )}
-        </Suspense>
-      </Canvas>
+            {/* The Environment */}
+            <fog attach="fog" args={['#050505', 20, 150]} />
+            <color attach="background" args={['#050505']} />
+          </Suspense>
+        </Canvas>
 
-      {/* Overlay UI */}
-      <motion.div 
-        className="absolute top-8 left-0 right-0 text-center pointer-events-none z-10"
-        style={{ opacity }}
-      >
-        <h2 className="text-3xl md:text-5xl font-light tracking-[0.2em] text-amber-500/80 drop-shadow-lg" style={{ fontFamily: "'Cinzel Decorative', serif" }}>
-          The Ancient World
-        </h2>
-        <p className="mt-2 text-xs md:text-sm tracking-[0.4em] uppercase text-gray-400">
-          {selectedId ? "Behold the godly glare" : "Hover and click to explore the ruins"}
-        </p>
-      </motion.div>
-
-      {/* Point of No Return Notice */}
-      <div className="absolute top-4 left-4 z-20 pointer-events-none">
-        <p className="text-[9px] tracking-[0.2em] uppercase text-red-500/50">Point of no return reached</p>
-      </div>
-
-      {/* Sand Clock Time UI */}
-      <div 
-        className={`fixed top-6 left-6 md:top-12 md:left-12 z-50 flex flex-col items-center pointer-events-none drop-shadow-lg transition-opacity duration-1000 ${isLocked ? 'opacity-90' : 'opacity-0'}`}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500 mb-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <div className="text-[10px] md:text-xs tracking-[0.3em] font-mono text-amber-200">
-          {gameTime}
+        {/* Cinematic Overlays */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#050505] via-transparent to-[#050505] z-10" />
+        
+        {/* Lore Panel */}
+        <div className="absolute bottom-12 md:bottom-24 left-4 md:left-12 z-20 max-w-sm pointer-events-none transition-all duration-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: displayedBuilding ? 1 : 0, y: displayedBuilding ? 0 : 20 }}
+            className="backdrop-blur-md bg-black/40 border border-amber-500/20 p-6 rounded-sm"
+          >
+            <h3 className="text-amber-500 font-serif text-xl md:text-2xl mb-2" style={{ fontFamily: "'Cinzel', serif" }}>
+              {displayedBuilding?.title || '---'}
+            </h3>
+            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+              {displayedBuilding?.excerpt || '---'}
+            </p>
+          </motion.div>
         </div>
-      </div>
 
-      {/* Vignette effect */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.8)_100%)] z-[5]" />
-      {/* Scroll indicator */}
-      <motion.div 
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20"
-        style={{ opacity }}
-      >
-        <span className="text-[10px] tracking-[0.3em] uppercase text-amber-500/40 mb-2">
-          Scroll to Conclude
-        </span>
-        <div className="w-px h-12 bg-gradient-to-b from-amber-500/40 to-transparent" />
-      </motion.div>
+        {/* Global UI */}
+        <motion.div 
+          className="absolute top-8 left-1/2 -translate-x-1/2 z-20 text-center pointer-events-none"
+          style={{ opacity }}
+        >
+          <h2 className="text-3xl md:text-5xl text-gray-200 font-light tracking-[0.2em]" style={{ fontFamily: "'Cinzel', serif" }}>
+            The Ancient World
+          </h2>
+          <p className="mt-2 text-xs md:text-sm tracking-[0.4em] uppercase text-gray-400">
+            {selectedId ? "Behold the godly glare" : "Hover and click to explore the ruins"}
+          </p>
+        </motion.div>
+
+        {/* Sand Clock Time UI */}
+        <div 
+          className={`absolute top-6 left-6 md:top-12 md:left-12 z-50 flex flex-col items-center pointer-events-none drop-shadow-lg transition-opacity duration-1000 opacity-90`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500 mb-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-[10px] md:text-xs tracking-[0.3em] font-mono text-amber-200">
+            {gameTime}
+          </div>
+        </div>
+
+        {/* Vignette effect */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.8)_100%)] z-[5]" />
+        {/* Scroll indicator */}
+        <motion.div 
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20"
+          style={{ opacity }}
+        >
+          <span className="text-[10px] tracking-[0.3em] uppercase text-amber-500/40 mb-2">
+            Scroll to Conclude
+          </span>
+          <div className="w-px h-12 bg-gradient-to-b from-amber-500/40 to-transparent" />
+        </motion.div>
 
       </div>
-    </section>
+    </motion.section>
   );
 }

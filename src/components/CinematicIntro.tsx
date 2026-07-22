@@ -3,23 +3,64 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useMousePosition } from '@/hooks/useMousePosition';
 import { Howl } from 'howler';
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useTransform, motion, MotionValue } from 'framer-motion';
 
-export default function CinematicIntro() {
+export default function CinematicIntro({ progress }: { progress: MotionValue<number> }) {
   const [phase, setPhase] = useState<'scratching' | 'revealed'>('scratching');
   const [scratchPercent, setScratchPercent] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [holdProgress, setHoldProgress] = useState(0);
   const scratchCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
+  const holdIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const mousePos = useMousePosition();
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
+  const startHold = () => {
+    if (phase !== 'revealed') return;
+    let progress = 0;
+    holdIntervalRef.current = setInterval(() => {
+      progress += 2; // 2% every 16ms -> ~800ms to fill
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(holdIntervalRef.current!);
+        jumpToTroy();
+      }
+      setHoldProgress(progress);
+    }, 16);
+  };
 
-  const fadeOutOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scaleOut = useTransform(scrollYProgress, [0, 0.5], [1, 1.1]);
+  const endHold = () => {
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    setHoldProgress(0);
+  };
+
+  const jumpToTroy = () => {
+    const startY = window.scrollY;
+    // Scroll to 17% of total height to be fully immersed in Troy (past transition)
+    const targetY = document.body.scrollHeight * 0.17;
+    const duration = 6000; // 6 seconds ultra-smooth cinematic sweep
+    const startTime = performance.now();
+
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // smooth easeInOutQuad for a very gentle, un-rushed start and end
+      const ease = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      window.scrollTo(0, startY + (targetY - startY) * ease);
+
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+    requestAnimationFrame(animateScroll);
+  };
+
+  // Use the passed progress instead of local scroll
+  const fadeOutOpacity = useTransform(progress, [0.5, 1], [1, 0]);
+  const scaleOut = useTransform(progress, [0.5, 1], [1, 1.1]);
 
   const parallaxX = mousePos.x * 20;
   const parallaxY = mousePos.y * 20;
@@ -219,14 +260,14 @@ export default function CinematicIntro() {
   }, []);
 
   return (
-    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-50">
-      <div className="sticky top-0 w-full h-screen flex flex-col items-center justify-center overflow-hidden">
+    <section className="relative w-full h-full bg-black z-50">
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden bg-black">
 
       {/* Film Grain Overlay */}
       <div 
         className="absolute inset-0 pointer-events-none transition-opacity duration-2000 z-40"
         style={{
-          opacity: 0.3, // Keep grain always on
+          opacity: phase === 'revealed' ? 0.15 : 0, // Hidden during scratch, subtle after reveal
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
           mixBlendMode: 'overlay',
         }}
@@ -286,12 +327,30 @@ export default function CinematicIntro() {
           An Interactive Journey Through Myth
         </p>
         
-        {/* Scroll Indicator */}
-        <div className="mt-16 flex flex-col items-center animate-bounce opacity-50">
-          <p className="text-[10px] tracking-[0.3em] uppercase mb-2">Scroll Down</p>
-          <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+        {/* Press and Hold to Continue */}
+        <div className="mt-16 flex flex-col items-center">
+          <p className="text-[10px] tracking-[0.3em] uppercase mb-4 text-white/50">
+            {phase === 'revealed' ? "Hold to Descend" : ""}
+          </p>
+          
+          <button
+            onMouseDown={startHold}
+            onMouseUp={endHold}
+            onMouseLeave={endHold}
+            onTouchStart={startHold}
+            onTouchEnd={endHold}
+            className={`relative w-16 h-16 rounded-full border border-white/20 bg-white/5 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-500 hover:bg-white/10 ${phase === 'revealed' ? 'opacity-100 cursor-pointer' : 'opacity-0 pointer-events-none'}`}
+          >
+            {/* Progress Fill */}
+            <div 
+              className="absolute bottom-0 left-0 w-full bg-white/30 transition-all duration-75"
+              style={{ height: `${holdProgress}%` }}
+            />
+            
+            <svg className="w-6 h-6 text-white/80 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
         </div>
       </motion.div>
 

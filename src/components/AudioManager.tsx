@@ -57,7 +57,7 @@ export default function AudioManager() {
   return (
     <button
       onClick={toggleMute}
-      className={`fixed bottom-6 right-6 z-[100] w-12 h-12 rounded-full border border-amber-500/30 bg-[#1c1c1e]/50 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-all duration-1000 hover:border-amber-500/60 hover:bg-[#1c1c1e]/70 group ${isCityLocked ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed bottom-6 right-6 z-[100] w-12 h-12 rounded-full border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center cursor-pointer transition-all duration-700 hover:border-white/40 hover:bg-white/20 hover:scale-110 group opacity-100`}
       aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
     >
       {isMuted ? (
@@ -66,9 +66,9 @@ export default function AudioManager() {
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="rgba(245,158,11,0.6)"
+          stroke="rgba(255,255,255,0.7)"
           strokeWidth="1.5"
-          className="group-hover:stroke-amber-400 transition-colors"
+          className="group-hover:stroke-white transition-colors"
         >
           <path d="M11 5L6 9H2v6h4l5 4V5z" />
           <line x1="23" y1="9" x2="17" y2="15" />
@@ -80,9 +80,9 @@ export default function AudioManager() {
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="rgba(245,158,11,0.8)"
+          stroke="rgba(255,255,255,0.9)"
           strokeWidth="1.5"
-          className="group-hover:stroke-amber-400 transition-colors"
+          className="group-hover:stroke-white transition-colors"
         >
           <path d="M11 5L6 9H2v6h4l5 4V5z" />
           <path d="M19.07 4.93a10 10 0 010 14.14" />
@@ -92,7 +92,7 @@ export default function AudioManager() {
 
       {/* Pulsing ring when unmuted */}
       {!isMuted && (
-        <div className="absolute inset-0 rounded-full border border-amber-500/20 animate-ping" />
+        <div className="absolute inset-0 rounded-full border border-white/30 animate-ping" />
       )}
     </button>
   );

@@ -10,41 +10,12 @@ import * as THREE from 'three';
 function TrojanWalls({ scrollYProgress }: { scrollYProgress: MotionValue<number> }) {
   const groupRef = useRef<THREE.Group>(null);
 
-  const stoneTexture = React.useMemo(() => {
-    if (typeof window === 'undefined') return new THREE.Texture();
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(0, 0, 512, 512);
-    // Draw brick pattern
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 12; i++) {
-      const y = i * (512 / 12);
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(512, y);
-      ctx.stroke();
-      const offset = i % 2 === 0 ? 0 : 30;
-      for (let j = 0; j < 8; j++) {
-        ctx.beginPath();
-        ctx.moveTo(j * 64 + offset, y);
-        ctx.lineTo(j * 64 + offset, y + (512 / 12));
-        ctx.stroke();
-      }
-    }
-    // Add noise for realism
-    for (let i = 0; i < 5000; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.05)';
-      ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    return tex;
-  }, []);
+  const stoneMaterial = new THREE.MeshStandardMaterial({
+    color: '#4a4a4a',
+    roughness: 0.9,
+    metalness: 0.1,
+    flatShading: true,
+  });
 
   // Animate wall opacity based on scroll — walls visible in phase 1
   useFrame(() => {
@@ -57,47 +28,52 @@ function TrojanWalls({ scrollYProgress }: { scrollYProgress: MotionValue<number>
 
   return (
     <group ref={groupRef} position={[0, -2.5, 12]}>
-      {/* Main curved wall */}
-      <mesh receiveShadow castShadow>
+      {/* Outer curved wall */}
+      <mesh receiveShadow castShadow material={stoneMaterial}>
         <cylinderGeometry args={[28, 28, 18, 48, 1, false, -Math.PI / 3, Math.PI * 2 / 3]} />
-        <meshPhysicalMaterial map={stoneTexture} color="#5a5a5a" roughness={0.95} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Inner curved wall */}
+      <mesh receiveShadow castShadow material={new THREE.MeshStandardMaterial({ color: '#4a4a4a', roughness: 0.9, flatShading: true, side: THREE.BackSide })}>
+        <cylinderGeometry args={[26, 26, 18, 48, 1, false, -Math.PI / 3, Math.PI * 2 / 3]} />
+      </mesh>
+
+      {/* Top of the wall */}
+      <mesh position={[0, 9, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow material={stoneMaterial}>
+        <ringGeometry args={[26, 28, 48, 1, -Math.PI / 3, Math.PI * 2 / 3]} />
       </mesh>
 
       {/* Left tower */}
-      <mesh receiveShadow castShadow position={[-22, 3, -12]}>
+      <mesh receiveShadow castShadow position={[-24.2, 3, 14]} material={stoneMaterial}>
         <cylinderGeometry args={[3, 3.5, 24, 12]} />
-        <meshPhysicalMaterial map={stoneTexture} color="#4a4a4a" roughness={1} />
       </mesh>
 
       {/* Right tower */}
-      <mesh receiveShadow castShadow position={[22, 3, -12]}>
+      <mesh receiveShadow castShadow position={[24.2, 3, 14]} material={stoneMaterial}>
         <cylinderGeometry args={[3, 3.5, 24, 12]} />
-        <meshPhysicalMaterial map={stoneTexture} color="#4a4a4a" roughness={1} />
       </mesh>
 
       {/* Battlements along the top */}
       {Array.from({ length: 20 }).map((_, i) => {
-        const angle = (-Math.PI / 3) + (i / 20) * (Math.PI * 2 / 3);
-        const bx = 28 * Math.sin(angle);
-        const bz = 28 * Math.cos(angle);
+        const angle = (-Math.PI / 3) + (i / 19) * (Math.PI * 2 / 3);
+        const bx = 27 * Math.sin(angle);
+        const bz = 27 * Math.cos(angle);
         return (
-          <mesh key={`bat-${i}`} position={[bx, 9.5, bz - 12 + 12]} castShadow>
-            <boxGeometry args={[2, 2, 1.5]} />
-            <meshPhysicalMaterial map={stoneTexture} color="#555" roughness={1} />
+          <mesh key={`bat-${i}`} position={[bx, 9.5, bz]} castShadow material={stoneMaterial}>
+            <boxGeometry args={[2, 2, 2]} />
           </mesh>
         );
       })}
 
       {/* Gate (dark opening in the wall) */}
-      <mesh position={[0, 0, -28 + 12]} receiveShadow>
-        <boxGeometry args={[6, 12, 2]} />
-        <meshPhysicalMaterial color="#0a0a0a" roughness={1} />
+      <mesh position={[0, 0, 28]} receiveShadow>
+        <boxGeometry args={[6, 12, 4]} />
+        <meshStandardMaterial color="#0a0a0a" roughness={1} flatShading={true} />
       </mesh>
 
       {/* Gate arch */}
-      <mesh position={[0, 6, -28 + 12]} receiveShadow>
-        <cylinderGeometry args={[3, 3, 2, 16, 1, false, 0, Math.PI]} />
-        <meshPhysicalMaterial map={stoneTexture} color="#444" roughness={1} side={THREE.DoubleSide} />
+      <mesh position={[0, 6, 28]} receiveShadow material={new THREE.MeshStandardMaterial({ color: '#444', roughness: 1, flatShading: true, side: THREE.DoubleSide })}>
+        <cylinderGeometry args={[3, 3, 4, 16, 1, false, 0, Math.PI]} />
       </mesh>
     </group>
   );
@@ -191,30 +167,13 @@ function FireRing({ scrollYProgress }: { scrollYProgress: MotionValue<number> })
 // --- Wooden Horse ---
 function WoodenHorse() {
   const group = useRef<THREE.Group>(null);
-  const woodTexture = React.useMemo(() => {
-    if (typeof window === 'undefined') return new THREE.Texture();
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(0, 0, 1024, 1024);
-    for (let i = 0; i < 20; i++) {
-      ctx.fillStyle = '#2d1c10';
-      ctx.fillRect(0, i * 51.2, 1024, 2);
-      ctx.fillStyle = '#4a3219';
-      ctx.fillRect(0, i * 51.2 + 2, 1024, 49);
-      for (let j = 0; j < 500; j++) {
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
-        ctx.fillRect(Math.random() * 1024, i * 51.2 + Math.random() * 50, Math.random() * 50 + 10, 1);
-      }
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    tex.anisotropy = 16;
-    return tex;
-  }, []);
+  
+  const woodMaterial = new THREE.MeshStandardMaterial({
+    color: '#4a3219',
+    roughness: 0.95,
+    metalness: 0.1,
+    flatShading: true,
+  });
 
   const { viewport } = useThree();
   const scale = Math.min(1, viewport.width / 12);
@@ -222,19 +181,16 @@ function WoodenHorse() {
   return (
     <group ref={group} position={[0, -2, 0]} scale={scale} castShadow receiveShadow>
       {/* Body */}
-      <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+      <mesh position={[0, 5, 0]} rotation={[0, 0, Math.PI / 2]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[2.5, 3, 6, 16]} />
-        <meshPhysicalMaterial map={woodTexture} color="#5c4033" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       {/* Neck */}
-      <mesh position={[0, 7.5, 3]} rotation={[Math.PI / 6, 0, 0]} castShadow>
+      <mesh position={[0, 7.5, 3]} rotation={[Math.PI / 6, 0, 0]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[1.2, 1.8, 4, 12]} />
-        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       {/* Head */}
-      <mesh position={[0, 9.5, 4]} rotation={[-Math.PI / 12, 0, 0]} castShadow>
+      <mesh position={[0, 9.5, 4]} rotation={[-Math.PI / 12, 0, 0]} castShadow material={woodMaterial}>
         <boxGeometry args={[1.2, 1.5, 3.5]} />
-        <meshPhysicalMaterial map={woodTexture} color="#3e2723" roughness={0.9} bumpMap={woodTexture} bumpScale={0.05} />
       </mesh>
       {/* Ears */}
       <mesh position={[-0.4, 10.5, 3]} castShadow>
@@ -255,26 +211,21 @@ function WoodenHorse() {
         <meshPhysicalMaterial color="#8b5a2b" roughness={1} />
       </mesh>
       {/* Legs */}
-      <mesh position={[-1.5, 2, 2.5]} castShadow>
+      <mesh position={[-1.5, 2, 2.5]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
-        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} />
       </mesh>
-      <mesh position={[1.5, 2, 2.5]} castShadow>
+      <mesh position={[1.5, 2, 2.5]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
-        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} />
       </mesh>
-      <mesh position={[-1.5, 2, -2.5]} castShadow>
+      <mesh position={[-1.5, 2, -2.5]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
-        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} />
       </mesh>
-      <mesh position={[1.5, 2, -2.5]} castShadow>
+      <mesh position={[1.5, 2, -2.5]} castShadow material={woodMaterial}>
         <cylinderGeometry args={[0.4, 0.3, 4, 8]} />
-        <meshPhysicalMaterial map={woodTexture} color="#4a3219" roughness={0.9} />
       </mesh>
       {/* Platform */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0, 0]} castShadow receiveShadow material={woodMaterial}>
         <boxGeometry args={[5, 0.5, 8]} />
-        <meshPhysicalMaterial map={woodTexture} color="#2d1c10" roughness={0.9} />
       </mesh>
       {/* Wheels */}
       <mesh position={[-2.5, -0.5, 3]} rotation={[0, 0, Math.PI / 2]} castShadow>
@@ -309,17 +260,17 @@ function SceneCamera({ scrollYProgress }: { scrollYProgress: MotionValue<number>
 
     if (t < 0.3) {
       // Phase 1: Outside the walls — dramatic establishing shot
-      const phase = t / 0.3;
-      targetX = Math.sin(phase * Math.PI * 0.5) * 15;
-      targetY = 4 + phase * 8;
-      targetZ = 45 - phase * 10;
+      const phase = t / 0.3; // 0 to 1
+      targetX = Math.sin(phase * Math.PI * 0.5) * 15; // 0 to 15
+      targetY = 4 + phase * 8; // 4 to 12
+      targetZ = 45 - phase * 10; // 45 to 35
       lookAtTarget.set(0, 5, 12);
     } else if (t < 0.6) {
       // Phase 2: The sweep over the wall — dramatic arc revealing the horse
-      const sweepT = (t - 0.3) / 0.3;
-      targetX = Math.sin(sweepT * Math.PI) * 25;
-      targetY = 12 + Math.sin(sweepT * Math.PI) * 8;
-      targetZ = 35 - sweepT * 50;
+      const sweepT = (t - 0.3) / 0.3; // 0 to 1
+      targetX = 15 * Math.cos(sweepT * Math.PI * 0.5); // 15 to 0
+      targetY = 12 + Math.sin(sweepT * Math.PI) * 4; // 12 -> 16 -> 12
+      targetZ = 35 - sweepT * 50; // 35 to -15
 
       lookAtTarget.set(
         0,
@@ -328,11 +279,16 @@ function SceneCamera({ scrollYProgress }: { scrollYProgress: MotionValue<number>
       );
     } else {
       // Phase 3: Inside — fire consuming everything, bird's eye rising
-      const fireT = (t - 0.6) / 0.4;
-      targetX = Math.sin(fireT * Math.PI * 0.3) * -10;
-      targetY = 15 + fireT * 20;
-      targetZ = -15 - fireT * 10;
-      lookAtTarget.set(0, 0, 0);
+      const fireT = (t - 0.6) / 0.4; // 0 to 1
+      targetX = Math.sin(fireT * Math.PI) * -10; // 0 -> -10 -> 0
+      targetY = 12 + fireT * 20; // 12 to 32
+      targetZ = -15 - fireT * 10; // -15 to -25
+      
+      lookAtTarget.set(
+        0, 
+        THREE.MathUtils.lerp(3, 0, fireT), 
+        0
+      );
     }
 
     state.camera.position.x = THREE.MathUtils.damp(state.camera.position.x, targetX, 3, delta);
@@ -386,21 +342,17 @@ function HtmlOverlays({ scrollYProgress }: { scrollYProgress: MotionValue<number
   );
 }
 
-export default function TrojanWar() {
+export default function TrojanWar({ progress }: { progress: MotionValue<number> }) {
   const containerRef = useRef<HTMLElement>(null);
   const isInView = useInView(containerRef, { margin: "0px 0px 0px 0px" });
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
 
   return (
-    <section ref={containerRef} className="relative w-full h-[300vh] bg-[#1c1c1e] z-10">
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
+    <section ref={containerRef} className="relative w-full h-full bg-transparent z-10">
+      <div className="absolute inset-0 h-full w-full overflow-hidden">
         <Canvas frameloop={isInView ? 'always' : 'demand'} shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 5, 45], fov: 50 }}>
           <Suspense fallback={null}>
-            <SceneCamera scrollYProgress={scrollYProgress} />
-            <HtmlOverlays scrollYProgress={scrollYProgress} />
+            <SceneCamera scrollYProgress={progress} />
+            <HtmlOverlays scrollYProgress={progress} />
 
             {/* The Environment */}
             <fog attach="fog" args={['#2a0800', 10, 80]} />
@@ -419,8 +371,8 @@ export default function TrojanWar() {
               <meshPhysicalMaterial color="#1a0a00" roughness={1} />
             </mesh>
 
-            <TrojanWalls scrollYProgress={scrollYProgress} />
-            <FireRing scrollYProgress={scrollYProgress} />
+            <TrojanWalls scrollYProgress={progress} />
+            <FireRing scrollYProgress={progress} />
 
             {/* The Horse */}
             <PresentationControls
