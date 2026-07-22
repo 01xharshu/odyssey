@@ -26,7 +26,7 @@ export default function Epilogue() {
   return (
     <section
       ref={observerRef}
-      className="relative min-h-screen bg-[#1c1c1e] flex items-center justify-center overflow-hidden"
+      className="snap-start shrink-0 relative min-h-screen bg-[#1c1c1e] flex items-center justify-center overflow-hidden"
     >
       {/* Ambient gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] via-transparent to-[#1c1c1e] pointer-events-none" />

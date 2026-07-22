@@ -165,7 +165,7 @@ export default function CinematicIntro() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#1c1c1e] overflow-hidden"
+      className="snap-start shrink-0 relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#1c1c1e] overflow-hidden"
     >
       {/* Film Grain Overlay */}
       <div 

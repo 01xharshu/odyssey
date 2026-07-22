@@ -193,7 +193,7 @@ function HtmlOverlays() {
 
 export default function OceanLore() {
   return (
-    <section className="relative w-full h-screen bg-[#000510] overflow-hidden">
+    <section className="snap-start shrink-0 relative w-full h-screen bg-[#000510] overflow-hidden">
       <Canvas shadows camera={{ position: [0, 5, 15], fov: 50 }}>
         <Suspense fallback={null}>
           <ScrollControls pages={3} damping={0.1}>

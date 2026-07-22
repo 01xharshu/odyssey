@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="en" className="snap-y snap-mandatory scroll-smooth">
+      <body className="antialiased bg-[#1c1c1e]">{children}</body>
     </html>
   );
 }

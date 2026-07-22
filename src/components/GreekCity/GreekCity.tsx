@@ -56,7 +56,7 @@ export default function GreekCity() {
   }, [selectedBuilding]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen bg-[#1c1c1e] overflow-hidden">
+    <div ref={containerRef} className="snap-start shrink-0 relative w-full h-screen bg-[#1c1c1e] overflow-hidden">
       {/* 3D Canvas */}
       <Canvas shadows camera={{ position: [0, 2, 15], fov: 55 }}>
         <Suspense fallback={null}>

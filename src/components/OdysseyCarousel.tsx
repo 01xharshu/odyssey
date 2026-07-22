@@ -112,7 +112,7 @@ export default function OdysseyCarousel() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
+      className="snap-start shrink-0 relative h-[400vh] bg-[#1c1c1e] text-white selection:bg-amber-500 selection:text-black"
       style={{ fontFamily: "'Cinzel', serif" }}
     >
       {/* Sticky viewport */}

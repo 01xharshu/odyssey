@@ -30,7 +30,7 @@ const GreekCity = dynamic(() => import('@/components/GreekCity/GreekCity'), {
 
 export default function Home() {
   return (
-    <main className="bg-[#1c1c1e] text-white min-h-screen">
+    <main className="text-white min-h-screen overflow-x-hidden">
       <CinematicIntro />
       <CustomCursor />
       <AudioManager />
