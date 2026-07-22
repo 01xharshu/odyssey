@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -51,9 +51,27 @@ export default function ParticleField({
       uScrollProgress: { value: 0 },
       uMouse: { value: new THREE.Vector2(0, 0) },
       uActiveIndex: { value: 0 },
+      uClickTime: { value: -100.0 },
+      uClickPos: { value: new THREE.Vector2(0, 0) },
     }),
     []
   );
+
+  useEffect(() => {
+    const handlePointerDown = (e: MouseEvent) => {
+      if (materialRef.current) {
+        // Convert screen coordinates to normalized device coordinates
+        const x = (e.clientX / window.innerWidth) * 2 - 1;
+        const y = -(e.clientY / window.innerHeight) * 2 + 1;
+        
+        materialRef.current.uniforms.uClickPos.value.set(x, y);
+        materialRef.current.uniforms.uClickTime.value = materialRef.current.uniforms.uTime.value;
+      }
+    };
+    
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, []);
 
   useFrame((state) => {
     if (materialRef.current) {

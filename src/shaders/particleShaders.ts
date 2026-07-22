@@ -3,6 +3,8 @@ export const particleVertexShader = /* glsl */ `
   uniform float uScrollProgress;
   uniform vec2 uMouse;
   uniform float uActiveIndex;
+  uniform float uClickTime;
+  uniform vec2 uClickPos;
   
   attribute float aSize;
   attribute float aPhase;
@@ -31,6 +33,25 @@ export const particleVertexShader = /* glsl */ `
     float dist = length(diff);
     float repulsion = smoothstep(3.0, 0.0, dist) * 1.5;
     pos.xy += normalize(diff + 0.001) * repulsion;
+
+    // Shockwave effect on click
+    float timeSinceClick = uTime - uClickTime;
+    if (timeSinceClick > 0.0 && timeSinceClick < 3.0) {
+      vec2 clickWorld = uClickPos * 5.0;
+      vec2 clickDiff = pos.xy - clickWorld;
+      float clickDist = length(clickDiff);
+      
+      // Ring expanding outwards
+      float ringRadius = timeSinceClick * 8.0; 
+      float ringThickness = 1.5;
+      float distanceToRing = abs(clickDist - ringRadius);
+      
+      // Only affect particles near the expanding ring
+      float shock = smoothstep(ringThickness, 0.0, distanceToRing);
+      // Push particles outward and upward
+      pos.xy += normalize(clickDiff + 0.001) * shock * 2.0;
+      pos.z += shock * 2.0;
+    }
     
     // Depth based alpha
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);

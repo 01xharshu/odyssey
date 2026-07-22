@@ -18,6 +18,9 @@ const AudioManager = dynamic(() => import('@/components/AudioManager'), {
 const Epilogue = dynamic(() => import('@/components/Epilogue'), {
   ssr: false,
 });
+const GreekCity = dynamic(() => import('@/components/GreekCity/GreekCity'), {
+  ssr: false,
+});
 
 export default function Home() {
   return (
@@ -27,6 +30,7 @@ export default function Home() {
       <AudioManager />
       <OdysseyCarousel />
       <Epilogue />
+      <GreekCity />
     </main>
   );
 }

@@ -1,50 +1,187 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useMousePosition } from '@/hooks/useMousePosition';
+import { Howl } from 'howler';
 
 export default function CinematicIntro() {
-  const [phase, setPhase] = useState<'black' | 'bars' | 'title' | 'subtitle' | 'interaction' | 'ready'>('black');
-  const [hasEntered, setHasEntered] = useState(false);
+  const [phase, setPhase] = useState<'scratching' | 'revealed'>('scratching');
+  const [scratchPercent, setScratchPercent] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scratchCanvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
   const mousePos = useMousePosition();
 
-  // Calculate parallax offsets based on mouse position
-  const parallaxX = mousePos.x * 20; // max 20px shift
+  const parallaxX = mousePos.x * 20;
   const parallaxY = mousePos.y * 20;
 
+  const hoverSound = useRef<Howl | null>(null);
+  const scratchSound = useRef<Howl | null>(null);
+
   useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    timers.push(setTimeout(() => setPhase('bars'), 500));
-    timers.push(setTimeout(() => setPhase('title'), 1500));
-    timers.push(setTimeout(() => setPhase('subtitle'), 3000));
-    timers.push(setTimeout(() => setPhase('interaction'), 4500));
-    
-    return () => timers.forEach(clearTimeout);
+    hoverSound.current = new Howl({
+      src: ['https://cdn.pixabay.com/download/audio/2022/03/15/audio_73bb6d6e27.mp3?filename=whoosh-6316.mp3'],
+      volume: 0.1,
+    });
+    scratchSound.current = new Howl({
+      src: ['https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=deep-whoosh-1-88484.mp3'],
+      volume: 0.3,
+    });
   }, []);
 
-  const handleEnter = () => {
-    setHasEntered(true);
-    setPhase('ready');
+  // Lock scroll until revealed
+  useEffect(() => {
+    if (phase === 'scratching') {
+      document.body.style.overflow = 'hidden';
+      const preventDefault = (e: TouchEvent) => e.preventDefault();
+      document.addEventListener('touchmove', preventDefault, { passive: false });
+      return () => {
+        document.body.style.overflow = '';
+        document.removeEventListener('touchmove', preventDefault);
+      };
+    }
+  }, [phase]);
+
+  // Setup Scratch Canvas
+  useEffect(() => {
+    const canvas = scratchCanvasRef.current;
+    if (!canvas || phase !== 'scratching') return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Fill with dark brownish sand
+    ctx.fillStyle = '#2b1b12'; 
+    ctx.fillRect(0, 0, width, height);
+    
+    // Add heavy noise/texture to make it look like grainy sand
+    for (let i = 0; i < 40000; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(139,69,19,0.3)';
+      ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
+    }
+    
+    ctx.font = '24px "Cinzel", serif';
+    ctx.fillStyle = 'rgba(245,158,11,0.6)';
+    ctx.textAlign = 'center';
+    ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', width / 2, height / 2);
+
+    const handleResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.fillStyle = '#2b1b12';
+      ctx.fillRect(0, 0, width, height);
+      
+      for (let i = 0; i < 40000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(139,69,19,0.3)';
+        ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
+      }
+      
+      ctx.font = '24px "Cinzel", serif';
+      ctx.fillStyle = 'rgba(245,158,11,0.6)';
+      ctx.textAlign = 'center';
+      ctx.fillText('WIPE AWAY THE SAND TO REVEAL THE MYTH', width / 2, height / 2);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [phase]);
+
+  // Handle Scratching
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isDrawing.current = true;
+    scratch(e.clientX, e.clientY);
+    if (scratchSound.current && !scratchSound.current.playing()) {
+      scratchSound.current.play();
+    }
   };
 
-  const isGone = phase === 'ready';
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDrawing.current) return;
+    scratch(e.clientX, e.clientY);
+  };
+
+  const handlePointerUp = () => {
+    isDrawing.current = false;
+    checkScratchPercent();
+  };
+
+  const scratch = (x: number, y: number) => {
+    const canvas = scratchCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Adjust for scroll offset if any (though overflow should be hidden)
+    const rect = canvas.getBoundingClientRect();
+    const clientX = x - rect.left;
+    const clientY = y - rect.top;
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(clientX, clientY, 80, 0, Math.PI * 2); // 80px brush size
+    ctx.fill();
+    
+    // Add some random scatter to the brush for a realistic wipe feel
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(clientX + (Math.random() - 0.5) * 40, clientY + (Math.random() - 0.5) * 40, Math.random() * 40 + 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const checkScratchPercent = useCallback(() => {
+    const canvas = scratchCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    let transparent = 0;
+    
+    // Check every 4th pixel (stride by 16 to save performance)
+    for (let i = 0; i < pixels.length; i += 16) {
+      if (pixels[i + 3] < 128) {
+        transparent++;
+      }
+    }
+    
+    const total = pixels.length / 16;
+    const percent = (transparent / total) * 100;
+    setScratchPercent(percent);
+
+    if (percent > 25) { // If 25% is wiped away, reveal the rest
+      setPhase('revealed');
+      window.dispatchEvent(new Event('introComplete'));
+    }
+  }, []);
 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-1000"
-      style={{
-        opacity: isGone ? 0 : 1,
-        pointerEvents: isGone ? 'none' : 'auto',
-        background: '#030303',
-      }}
+      className="relative w-full h-screen z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden"
     >
+      {/* Film Grain Overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none transition-opacity duration-2000 z-40"
+        style={{
+          opacity: 0.3, // Keep grain always on
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          mixBlendMode: 'overlay',
+        }}
+      />
+
       {/* Background Interactive Particles (CSS based for intro) */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-30 transition-opacity duration-1000"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
         style={{
-          opacity: phase !== 'black' ? 0.3 : 0,
+          opacity: phase === 'revealed' ? 0.3 : 0,
           transform: `translate(${parallaxX * -0.5}px, ${parallaxY * -0.5}px)`,
         }}
       >
@@ -66,134 +203,65 @@ export default function CinematicIntro() {
 
       {/* Cinematic letterbox bars */}
       <div
-        className="absolute top-0 left-0 right-0 bg-black z-10 transition-all duration-1000"
+        className="absolute top-0 left-0 right-0 bg-black z-20 transition-all duration-1000"
         style={{
-          height: phase === 'black' ? '50%' : phase === 'bars' ? '12%' : '8%',
+          height: phase === 'revealed' ? '8%' : '0%',
         }}
       />
       <div
-        className="absolute bottom-0 left-0 right-0 bg-black z-10 transition-all duration-1000"
+        className="absolute bottom-0 left-0 right-0 bg-black z-20 transition-all duration-1000"
         style={{
-          height: phase === 'black' ? '50%' : phase === 'bars' ? '12%' : '8%',
+          height: phase === 'revealed' ? '8%' : '0%',
         }}
       />
 
-      {/* Greek border ornament */}
+      {/* Title with Parallax and Hover Glow */}
       <div 
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-        style={{
-          transform: `translate(${parallaxX * 0.2}px, ${parallaxY * 0.2}px)`,
-        }}
-      >
-        <div
-          className="w-[80vw] max-w-2xl aspect-[2/1] border transition-all duration-1000"
-          style={{
-            borderColor:
-              phase === 'black' ? 'transparent' : 'rgba(245,158,11,0.15)',
-            borderWidth: '1px',
-            opacity: ['title', 'subtitle', 'interaction'].includes(phase) ? 1 : 0,
-          }}
-        >
-          {/* Corner ornaments */}
-          {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map(
-            (pos, i) => (
-              <div
-                key={i}
-                className={`absolute ${pos} w-6 h-6 transition-opacity duration-500`}
-                style={{
-                  opacity: ['title', 'subtitle', 'interaction'].includes(phase) ? 0.4 : 0,
-                  transitionDelay: `${i * 100}ms`,
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-                  <path
-                    d={
-                      pos.includes('top') && pos.includes('left')
-                        ? 'M0 24V0H24'
-                        : pos.includes('top') && pos.includes('right')
-                        ? 'M24 24V0H0'
-                        : pos.includes('bottom') && pos.includes('left')
-                        ? 'M0 0V24H24'
-                        : 'M24 0V24H0'
-                    }
-                    stroke="rgba(245,158,11,0.3)"
-                    strokeWidth="1"
-                  />
-                </svg>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Title with Parallax */}
-      <div 
-        className="relative z-30 text-center"
+        className="relative z-10 text-center group transition-all duration-[2000ms]"
         style={{
           transform: `translate(${parallaxX}px, ${parallaxY}px)`,
+          opacity: phase === 'revealed' ? 1 : 0, // Hidden until scratched
+          filter: phase === 'scratching' ? 'blur(20px)' : 'blur(0px)',
         }}
       >
-        <p
-          className="text-xs tracking-[0.6em] uppercase text-amber-500/50 font-sans mb-4 transition-all duration-700"
-          style={{
-            opacity: ['title', 'subtitle', 'interaction'].includes(phase) ? 1 : 0,
-            transform: ['title', 'subtitle', 'interaction'].includes(phase)
-                ? 'translateY(0)'
-                : 'translateY(20px)',
-          }}
-        >
+        <p className="text-xs tracking-[0.6em] uppercase text-amber-500/50 font-sans mb-4">
           Homer&apos;s Epic
         </p>
 
         <h1
-          className="text-7xl md:text-9xl font-light tracking-[0.2em] transition-all duration-1000"
+          className="text-7xl md:text-9xl font-light tracking-[0.2em] transition-all duration-1000 group-hover:tracking-[0.3em] group-hover:text-shadow-[0_0_30px_rgba(245,158,11,0.8)] cursor-default"
           style={{
             fontFamily: "'Cinzel Decorative', serif",
             background: 'linear-gradient(135deg, #fff 0%, #f59e0b 50%, #92400e 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            opacity: ['title', 'subtitle', 'interaction'].includes(phase) ? 1 : 0,
-            transform: ['title', 'subtitle', 'interaction'].includes(phase)
-                ? 'translateY(0) scale(1)'
-                : 'translateY(30px) scale(0.95)',
-            textShadow: 'none',
           }}
         >
           ODYSSEY
         </h1>
 
-        {/* Subtitle */}
-        <p
-          className="mt-6 text-sm md:text-base tracking-[0.3em] uppercase text-gray-400/70 font-sans transition-all duration-700"
-          style={{
-            opacity: ['subtitle', 'interaction'].includes(phase) ? 1 : 0,
-            transform: ['subtitle', 'interaction'].includes(phase) ? 'translateY(0)' : 'translateY(15px)',
-          }}
-        >
+        <p className="mt-6 text-sm md:text-base tracking-[0.3em] uppercase text-gray-400/70 font-sans group-hover:text-amber-500/70 transition-colors">
           An Interactive Journey Through Myth
         </p>
+        
+        {/* Scroll Indicator */}
+        <div className="mt-16 flex flex-col items-center animate-bounce opacity-50">
+          <p className="text-[10px] tracking-[0.3em] uppercase mb-2">Scroll Down</p>
+          <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
       </div>
 
-      {/* Interaction Prompt (Button) */}
-      <div
-        className="absolute bottom-[20%] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-6 transition-all duration-700"
-        style={{
-          opacity: phase === 'interaction' ? 1 : 0,
-          transform: phase === 'interaction' ? 'translateY(0)' : 'translateY(20px)',
-          pointerEvents: phase === 'interaction' ? 'auto' : 'none',
-        }}
-      >
-        <button 
-          onClick={handleEnter}
-          className="group relative px-8 py-3 overflow-hidden rounded-sm bg-transparent border border-amber-500/30 hover:border-amber-500/80 transition-colors duration-500"
-        >
-          <div className="absolute inset-0 bg-amber-500/10 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-500 ease-out" />
-          <span className="relative text-xs tracking-[0.4em] uppercase text-amber-500/80 group-hover:text-amber-400 transition-colors duration-300">
-            Enter The Myth
-          </span>
-        </button>
-        <div className="w-[1px] h-8 bg-gradient-to-b from-amber-500/50 to-transparent animate-pulse" />
-      </div>
+      {/* Scratch Canvas Overlay */}
+      <canvas
+        ref={scratchCanvasRef}
+        className={`absolute inset-0 z-30 cursor-crosshair touch-none transition-opacity duration-1000 ${phase !== 'scratching' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+      />
     </div>
   );
 }

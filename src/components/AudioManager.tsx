@@ -8,7 +8,7 @@ export default function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Use a free ambient ocean sound
+    // Use a free ambient epic sound
     const audio = new Audio();
     audio.src = 'https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3';
     audio.loop = true;
@@ -18,9 +18,16 @@ export default function AudioManager() {
 
     audio.addEventListener('canplaythrough', () => setIsLoaded(true));
 
+    const handleIntroComplete = () => {
+      audio.play().catch(() => {});
+      setIsMuted(false);
+    };
+    window.addEventListener('introComplete', handleIntroComplete);
+
     return () => {
       audio.pause();
       audio.src = '';
+      window.removeEventListener('introComplete', handleIntroComplete);
     };
   }, []);
 
