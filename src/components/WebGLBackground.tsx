@@ -3,7 +3,6 @@
 import React, { useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useInView } from 'framer-motion';
-import ParticleField from './ParticleField';
 import GodRays from './GodRays';
 
 interface WebGLBackgroundProps {
@@ -43,13 +42,6 @@ export default function WebGLBackground({
           mouseY={mouseY}
           color={accentColor}
           intensity={0.6}
-        />
-        <ParticleField
-          count={3500}
-          scrollProgress={scrollProgress}
-          mouseX={mouseX}
-          mouseY={mouseY}
-          activeIndex={activeIndex}
         />
       </Canvas>
     </div>

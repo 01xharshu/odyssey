@@ -52,9 +52,9 @@ export default function CustomCursor() {
 
     let raf: number;
     const animate = () => {
-      // Main cursor follows with spring
-      cursorPos.current.x += (mousePos.current.x - cursorPos.current.x) * 0.15;
-      cursorPos.current.y += (mousePos.current.y - cursorPos.current.y) * 0.15;
+      // Main cursor follows with tighter spring for less sluggishness
+      cursorPos.current.x += (mousePos.current.x - cursorPos.current.x) * 0.45;
+      cursorPos.current.y += (mousePos.current.y - cursorPos.current.y) * 0.45;
 
       if (cursorRef.current) {
         cursorRef.current.style.transform = `translate(${cursorPos.current.x}px, ${cursorPos.current.y}px) translate(-50%, -50%) scale(${isHovering ? 1.8 : 1})`;

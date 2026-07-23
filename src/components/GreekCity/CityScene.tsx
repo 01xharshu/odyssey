@@ -212,16 +212,16 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
     // Moon orbits opposite
     moonPosition.current.set(-sunPosition.current.x, -sunPosition.current.y, -sunPosition.current.z);
 
-    // Dim the environment lighting if a building is selected, creating a stark contrast
+    // Dim the environment lighting slightly if a building is selected, but keep it visible
     if (ambientLightRef.current) {
       const naturalIntensity = Math.max(0.05, sunElevation * 0.6);
-      const targetIntensity = isBuildingSelected ? 0.05 : naturalIntensity;
+      const targetIntensity = isBuildingSelected ? Math.max(0.2, naturalIntensity * 0.7) : naturalIntensity;
       ambientLightRef.current.intensity += (targetIntensity - ambientLightRef.current.intensity) * delta * 2;
     }
     
     if (directionalLightRef.current) {
       const naturalIntensity = Math.max(0.0, sunElevation * 1.5);
-      const targetIntensity = isBuildingSelected ? 0.0 : naturalIntensity;
+      const targetIntensity = isBuildingSelected ? Math.max(0.5, naturalIntensity * 0.5) : naturalIntensity;
       directionalLightRef.current.intensity += (targetIntensity - directionalLightRef.current.intensity) * delta * 2;
       
       directionalLightRef.current.position.copy(sunPosition.current);
@@ -366,7 +366,6 @@ export default function CityScene({ selectedId, hoveredId, onHover, onClick, onT
             castShadow
             color={selectedBuilding.color}
             target={spotLightTargetRef.current}
-            depthBuffer={depthBuffer}
           />
           {/* Ambient bounce to fill the shadows */}
           <pointLight 

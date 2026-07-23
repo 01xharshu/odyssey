@@ -57,7 +57,7 @@ export default function GreekCity({ progress }: { progress: MotionValue<number> 
   return (
     <motion.section ref={containerRef} className="relative w-full h-full bg-transparent" style={{ opacity }}>
       <div className="absolute inset-0 w-full h-full overflow-hidden">
-        <Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]}>
+        <Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} camera={{ position: [0, 20, 80] }}>
           <ResponsiveCamera />
           <Suspense fallback={null}>
             {displayedBuilding && (

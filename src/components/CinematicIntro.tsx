@@ -9,6 +9,7 @@ export default function CinematicIntro({ progress }: { progress: MotionValue<num
   const [phase, setPhase] = useState<'scratching' | 'revealed'>('scratching');
   const [scratchPercent, setScratchPercent] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [isJumping, setIsJumping] = useState(false);
   const scratchCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const holdIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,29 +35,32 @@ export default function CinematicIntro({ progress }: { progress: MotionValue<num
   };
 
   const jumpToTroy = () => {
-    const startY = window.scrollY;
-    // Scroll to 17% of total height to be fully immersed in Troy (past transition)
-    const targetY = document.body.scrollHeight * 0.17;
-    const duration = 6000; // 6 seconds ultra-smooth cinematic sweep
-    const startTime = performance.now();
-
-    const animateScroll = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // smooth easeInOutQuad for a very gentle, un-rushed start and end
-      const ease = progress < 0.5 
-        ? 2 * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-      window.scrollTo(0, startY + (targetY - startY) * ease);
-
-      if (progress < 1) {
-        requestAnimationFrame(animateScroll);
-      }
-    };
-    requestAnimationFrame(animateScroll);
+    setIsJumping(true);
   };
+
+  // Handle the seamless cinematic jump without fighting trackpad scroll momentum
+  useEffect(() => {
+    if (isJumping) {
+      // 14.4% places the user precisely inside the clouds, right before the chapter title appears.
+      // This forces the user to scroll manually to reveal the title, as requested.
+      const targetY = document.body.scrollHeight * 0.144; 
+      
+      // 1. Wait for the white screen overlay to fully fade in (1.5s)
+      const timeout1 = setTimeout(() => {
+        // 2. Instantly jump the scroll position while hidden behind the white screen
+        window.scrollTo({ top: targetY, left: 0, behavior: 'instant' });
+        
+        // 3. Wait a tiny bit for the browser to render the new scroll position (clouds), then fade out
+        const timeout2 = setTimeout(() => {
+           setIsJumping(false);
+        }, 100);
+
+        return () => clearTimeout(timeout2);
+      }, 1500);
+      
+      return () => clearTimeout(timeout1);
+    }
+  }, [isJumping]);
 
   // Use the passed progress instead of local scroll
   const fadeOutOpacity = useTransform(progress, [0.5, 1], [1, 0]);
@@ -362,6 +366,15 @@ export default function CinematicIntro({ progress }: { progress: MotionValue<num
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+      />
+
+      {/* Cinematic Flash Overlay for seamless transition to clouds */}
+      <div 
+        className={`absolute inset-0 z-[100] bg-white pointer-events-none transition-opacity ease-in-out`}
+        style={{
+          opacity: isJumping ? 1 : 0,
+          transitionDuration: isJumping ? '1500ms' : '2000ms',
+        }}
       />
       </div>
     </section>

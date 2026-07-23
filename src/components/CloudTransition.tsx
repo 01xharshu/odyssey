@@ -36,11 +36,8 @@ const cloudFragmentShader = `
   void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
-    // Zoom effect based on progress (penetration)
-    float zoom = 1.0;
-    if (uProgress > 0.6) {
-      zoom = 1.0 - ((uProgress - 0.6) * 1.5); // zoom in drastically
-    }
+    // Smooth, continuous zoom effect that accelerates as we push through
+    float zoom = mix(1.0, 0.1, pow(uProgress, 2.0));
     vec2 centeredUv = (uv - 0.5) * zoom + 0.5;
     
     float n1 = fbm(centeredUv * 3.0 - vec2(0.0, uTime * 0.1));
@@ -49,27 +46,20 @@ const cloudFragmentShader = `
     
     float cloudDensity = n1 * 0.5 + n2 * 0.35 + n3 * 0.15;
     
-    float alpha = 0.0;
+    // Create a smooth bell curve for the transition: 0 -> 1 -> 0
+    float transitionPhase = smoothstep(0.0, 0.3, uProgress) * smoothstep(1.0, 0.7, uProgress);
     
-    if (uProgress < 0.25) {
-      // Fade in clouds
-      float p = uProgress / 0.25;
-      alpha = smoothstep(1.0 - p, 1.2 - p, cloudDensity);
-    } else if (uProgress >= 0.25 && uProgress <= 0.75) {
-      // Full clouds phase
-      float p = 1.0;
-      if (uProgress < 0.4) {
-         p = (uProgress - 0.25) / 0.15;
-      } else if (uProgress > 0.6) {
-         p = (0.75 - uProgress) / 0.15;
-      }
-      float baseA = smoothstep(0.1, 0.8, cloudDensity);
-      alpha = mix(baseA, 1.0, p);
-    } else {
-      // Penetrate and fade out
-      float p = (uProgress - 0.75) / 0.25;
-      alpha = smoothstep(p - 0.1, p + 0.2, cloudDensity);
-    }
+    // Map the phase to a density threshold. 
+    // When phase is 0 (start/end), threshold is high (clouds invisible).
+    // When phase is 1 (middle), threshold is low (clouds fill screen).
+    float threshold = mix(1.0, 0.0, transitionPhase);
+    
+    // Calculate alpha with a soft edge
+    float alpha = smoothstep(threshold - 0.1, threshold + 0.3, cloudDensity);
+    
+    // Force complete opacity in the absolute middle (0.45 to 0.55) to hide the scene swap
+    float solidCore = smoothstep(0.3, 0.45, uProgress) * smoothstep(0.7, 0.55, uProgress);
+    alpha = mix(alpha, 1.0, solidCore);
     
     // Ethereal/god-like volumetric cloud coloring
     vec3 shadowColor = mix(vec3(0.6, 0.7, 0.8), uColor, 0.3); // Bright airy shadows
